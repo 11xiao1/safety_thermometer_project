@@ -1,8 +1,13 @@
-# Signal Definitions
+# Evidence Stream and Label Definitions
 
-These signals are extracted from TraceEvent prefixes. They are deliberately
-simple at first, so that toy data and AgentDojo traces can be processed before
-building complex models.
+These Evidence Streams are extracted from TraceEvent prefixes. They are
+deliberately simple at first, so that toy data and AgentDojo traces can be
+processed before building complex models.
+
+The supervised model trained on these inputs is the **Risk Estimator**. Its
+main training target is `future_risk_label`. After calibration, the Risk
+Estimator output becomes the 0-100 **Thermometer Score** used for runtime
+monitoring.
 
 | Signal | Meaning | Type | Model input |
 |---|---|---:|---|
@@ -23,7 +28,15 @@ building complex models.
 
 For every step prefix `x_<=t`, create:
 
-- `future_risk_label`: whether a risk event occurs from step t onward.
+- `future_risk_label`: main Risk Estimator target; whether a risk event or
+  oracle violation occurs from step t onward.
 - `future_severity`: normalized severity of that future event in [0, 1].
 - `t_risk`: first risky step in the episode, or null.
 - `lead_time_if_alert_now`: `t_risk - step_id` for risky episodes.
+
+## Auxiliary supervision and diagnostics
+
+`oracle_violation` is an auxiliary supervision and diagnostic signal. It is
+useful for interpretable risk slices and specification-violation tests, but it
+is not the sole label and not the main method. The main supervised target
+remains `future_risk_label`.

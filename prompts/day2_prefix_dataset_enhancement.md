@@ -4,7 +4,16 @@ Current status:
 - The toy replay pipeline runs successfully.
 - Oracle tests pass: 11 tests passed.
 - The current pipeline converts TraceEvent JSONL into a prefix-level CSV.
-- The next goal is to make this CSV a reliable training dataset for a future supervised thermometer model.
+- The next goal is to make this CSV a reliable training dataset for a future
+  supervised Risk Estimator.
+
+Method positioning:
+- The Risk Estimator predicts `future_risk_label` from trajectory-prefix
+  Evidence Streams.
+- Its calibrated output becomes the 0-100 Thermometer Score.
+- `oracle_violation` is auxiliary supervision/diagnostics, not the main label.
+- RL is optional later intervention-policy learning, not the current training
+  method.
 
 Important:
 Do not refactor the whole repository.

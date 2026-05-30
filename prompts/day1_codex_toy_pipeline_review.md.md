@@ -5,9 +5,15 @@ Build a trajectory-level risk monitoring pipeline for LLM agents. The current to
 1. Load TraceEvent JSONL files.
 2. Convert each agent step into a prefix-level sample.
 3. Extract intermediate risk signals.
-4. Apply deterministic oracle rules.
-5. Produce a rule-based thermometer risk score.
-6. Output a CSV that can later be used to train a supervised risk monitor.
+4. Apply deterministic oracle rules as auxiliary supervision and diagnostics.
+5. Produce a rule-based toy score for smoke testing.
+6. Output a CSV that can later be used to train a supervised Risk Estimator
+   on `future_risk_label`.
+
+Method positioning:
+Oracle violations are not the main method. The final supervised model is the
+Risk Estimator; after calibration, its output becomes the 0-100 Thermometer
+Score.
 
 Important:
 Do not refactor the whole repository.
