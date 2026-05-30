@@ -1,2 +1,0 @@
-Method,AUROC,AUPRC,F1@threshold,Mean Lead Time,Contained Incident Rate,False Alert Rate
-Rule-based Thermometer,0.9333333333333333,0.9583333333333333,0.9090909090909091,0.25,0.25,0.0
