@@ -7,6 +7,17 @@ from pydantic import BaseModel, Field
 
 HookType = Literal["pre_step", "post_step", "checkpoint", "final"]
 
+HOOK_ORDER: dict[str, int] = {
+    "pre_step": 0,
+    "post_step": 1,
+    "checkpoint": 2,
+    "final": 3,
+}
+
+
+def trace_event_sort_key(event: "TraceEvent") -> tuple[int, int]:
+    return (event.step_id, HOOK_ORDER.get(event.hook_type, len(HOOK_ORDER)))
+
 
 class TraceEvent(BaseModel):
     """One observable event in an agent trajectory."""

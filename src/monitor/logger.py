@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Iterable
-from .schema import TraceEvent
+from .schema import TraceEvent, trace_event_sort_key
 
 
 class JsonlTraceLogger:
@@ -35,5 +35,5 @@ def group_by_episode(events: Iterable[TraceEvent]) -> dict[str, list[TraceEvent]
     for event in events:
         grouped.setdefault(event.episode_id, []).append(event)
     for episode_events in grouped.values():
-        episode_events.sort(key=lambda e: (e.step_id, e.hook_type))
+        episode_events.sort(key=trace_event_sort_key)
     return grouped

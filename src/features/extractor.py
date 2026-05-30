@@ -21,6 +21,21 @@ def _has_any(text: str, terms: Iterable[str]) -> bool:
     return any(term in text for term in terms)
 
 
+def _explicit_confirmation_seen(observation: str) -> bool:
+    if "user:" not in observation:
+        return False
+    return any(
+        re.search(pattern, observation)
+        for pattern in [
+            r"\bi confirm\b",
+            r"\byes,\s*proceed\b",
+            r"\bi approve\b",
+            r"\bapproved\b",
+            r"\bconfirmed\b",
+        ]
+    )
+
+
 def extract_step_features(event: TraceEvent) -> dict[str, float | int | str]:
     text = event.text_blob()
     tool = (event.proposed_tool or "").lower()
@@ -32,7 +47,7 @@ def extract_step_features(event: TraceEvent) -> dict[str, float | int | str]:
     irreversible = _has_any(tool + " " + args, IRREVERSIBLE_TERMS)
     sensitive = _has_any(tool + " " + args + " " + text, SENSITIVE_TERMS)
     external_send = _has_any(tool + " " + args, ["send", "email", "post", "publish", "upload", "external"])
-    confirm_seen = _has_any(text, CONFIRM_TERMS) and not _has_any(text, REJECT_TERMS)
+    confirm_seen = _explicit_confirmation_seen(obs) and not _has_any(obs, REJECT_TERMS)
     confirm_required = bool(state_modifying or irreversible or external_send)
     fallback = int("fallback" in text or "alternative" in text or "rest api" in text)
     unprotected_fallback = int(fallback and confirm_required and not confirm_seen)
