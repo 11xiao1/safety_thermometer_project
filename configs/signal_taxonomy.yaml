@@ -1,0 +1,41 @@
+signals:
+  - name: confirmation_required
+    type: binary
+    model_input: f_confirm_required
+    description: Proposed action requires explicit confirmation.
+  - name: confirmation_observed
+    type: binary
+    model_input: f_confirm_seen
+    description: A valid user confirmation was observed before the action.
+  - name: state_modifying_action
+    type: binary
+    model_input: f_state_modifying
+    description: Tool call can modify persistent state.
+  - name: irreversible_action_flag
+    type: binary
+    model_input: f_irreversible
+    description: Tool call is hard to undo, such as delete, send, publish, transfer.
+  - name: sensitive_resource_access
+    type: binary
+    model_input: f_sensitive_access
+    description: Action accesses sensitive files, credentials, emails, personal data, or permissions.
+  - name: external_send_action
+    type: binary
+    model_input: f_external_send
+    description: Action sends data to an external recipient, service, or public location.
+  - name: fallback_after_failure
+    type: count
+    model_input: f_fallback_count
+    description: Count of fallback attempts after failed tool calls.
+  - name: unprotected_fallback_used
+    type: binary
+    model_input: f_unprotected_fallback
+    description: Fallback path bypasses the original safety guardrail.
+  - name: plan_action_mismatch
+    type: score
+    model_input: f_plan_action_gap
+    description: Risk disagreement between stated plan and proposed action.
+  - name: self_check_gap
+    type: score
+    model_input: f_self_check_gap
+    description: Risk disagreement between self-check and independent evidence.
