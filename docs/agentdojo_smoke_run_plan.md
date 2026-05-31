@@ -102,3 +102,34 @@ tools loop.
 - Tests should continue to use fakes and should not require provider access.
 - Full benchmark execution should wait until one JSONL smoke trace replays
   cleanly through the existing prefix dataset pipeline.
+
+## Real Smoke Run Checklist
+
+Before the first real AgentDojo smoke run:
+
+1. Install AgentDojo in the active environment and verify that
+   `inspect_agentdojo_pipeline()` reports the native pipeline components.
+2. Choose one minimal suite/task, preferably a short utility-only task before
+   adding injections.
+3. Configure either a provider credential or a local OpenAI-compatible model
+   server.
+4. Create an `AgentDojoTraceAdapter` pointing at a dedicated JSONL path such as
+   `outputs/agentdojo_smoke_trace.jsonl`.
+5. Construct a custom AgentDojo pipeline that mirrors the native pipeline but
+   places `TraceHookedToolsExecutor` where native `ToolsExecutor` would be.
+6. Run exactly one task with force-rerun enabled; do not run the full benchmark.
+7. Confirm the adapter writes AgentDojo trace JSONL in the project
+   `TraceEvent` schema.
+8. Load the trace with `load_trace_events(...)`.
+9. Replay the trace into a prefix dataset with the existing replay pipeline.
+10. Keep AgentDojo `utility` and `security` as final benchmark diagnostics;
+    do not use them as online monitor inputs.
+
+The exact first smoke command will need the selected suite/task and model
+provider. The expected shape should be a project-local script command such as:
+
+```powershell
+python scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl
+```
+
+That script is not implemented yet.
