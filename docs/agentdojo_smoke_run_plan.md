@@ -132,4 +132,45 @@ provider. The expected shape should be a project-local script command such as:
 python scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl
 ```
 
-That script is not implemented yet.
+The script now supports a dry run. Use this first:
+
+```powershell
+python scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --dry-run
+```
+
+The future non-dry-run command should be:
+
+```powershell
+python scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --provider local
+```
+
+The non-dry-run path is intentionally not implemented yet; it should fail
+safely rather than running native AgentDojo without tracing.
+
+### Future API or model configuration
+
+For a real task, configure one of:
+
+- a local OpenAI-compatible model server and `--provider local`
+- the relevant provider API key and provider/model flags
+- a small deterministic/local test model if AgentDojo supports it cleanly
+
+Tests must continue to use dry-run and fakes only.
+
+### Validating a real trace
+
+After a real run writes `outputs/agentdojo_smoke_trace.jsonl`, validate that it
+can be loaded:
+
+```powershell
+python -c "from src.monitor.logger import load_trace_events; events = load_trace_events('outputs/agentdojo_smoke_trace.jsonl'); print(len(events)); print([e.hook_type for e in events[:5]])"
+```
+
+Then pass it into replay:
+
+```powershell
+python scripts\replay.py --trace outputs\agentdojo_smoke_trace.jsonl --out outputs\agentdojo_smoke_prefix_dataset.csv
+```
+
+Only after this succeeds should the trace be considered usable for prefix
+dataset experiments.
