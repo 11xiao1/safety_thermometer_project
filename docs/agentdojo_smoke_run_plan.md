@@ -60,3 +60,45 @@ TraceHookedToolsExecutor(adapter=AgentDojoTraceAdapter(...), ...)
   `future_risk_label`, and `future_severity` for supervised training?
 - Should nested function calls be logged as separate internal steps or skipped
   in the first integration?
+
+## Next Real Smoke Run Plan
+
+The local `TraceHookedToolsExecutor` now mirrors the logical boundary of
+AgentDojo's `ToolsExecutor` in mock tests. The next real smoke run should wire
+it into a custom AgentDojo pipeline without modifying installed AgentDojo
+source.
+
+### Replacement strategy
+
+Create a project-local pipeline construction helper that follows
+`AgentPipeline.from_config(...)` but replaces only the tool executor:
+
+```python
+TraceHookedToolsExecutor(
+    adapter=AgentDojoTraceAdapter("outputs/agentdojo_smoke_trace.jsonl"),
+    tool_output_formatter=tool_result_to_str,
+)
+```
+
+This hooked executor should sit inside AgentDojo's existing
+`ToolsExecutionLoop` in the same position normally occupied by
+`ToolsExecutor(...)`. The rest of the pipeline should remain native
+AgentDojo components: system message, initial query setup, LLM element, and
+tools loop.
+
+### Still unimplemented
+
+- The custom pipeline construction helper.
+- A real AgentDojo suite/task selection for the first smoke run.
+- Final hook emission from the `TaskSuite.run_task_with_pipeline(...)`
+  completion boundary.
+- Environment diffing for `state_delta`.
+- Label/severity mapping from AgentDojo `utility/security` to training labels.
+
+### May require API or local model later
+
+- Running a real AgentDojo LLM pipeline may require an OpenAI-compatible API,
+  another provider credential, or a local model server.
+- Tests should continue to use fakes and should not require provider access.
+- Full benchmark execution should wait until one JSONL smoke trace replays
+  cleanly through the existing prefix dataset pipeline.
