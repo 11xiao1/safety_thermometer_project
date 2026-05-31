@@ -10,7 +10,11 @@ import importlib
 import json
 import os
 
-from src.adapters.agentdojo_pipeline_builder import inspect_agentdojo_pipeline
+from src.adapters.agentdojo_adapter import AgentDojoTraceAdapter
+from src.adapters.agentdojo_pipeline_builder import (
+    build_traced_agentdojo_pipeline,
+    inspect_agentdojo_pipeline,
+)
 
 
 def _provider_status(args: argparse.Namespace) -> dict:
@@ -105,6 +109,145 @@ def build_dry_run_report(args: argparse.Namespace) -> dict:
     }
 
 
+def _blocked(message: dict, exit_code: int = 2) -> None:
+    print(json.dumps(message, indent=2), file=sys.stderr)
+    raise SystemExit(exit_code)
+
+
+def _build_llm(args: argparse.Namespace):
+    if args.model is None:
+        raise ValueError(f"--model is required for provider {args.provider}.")
+
+    if args.provider == "openai-compatible":
+        import openai
+        from agentdojo.agent_pipeline.llms.openai_llm import OpenAILLM
+
+        client = openai.OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_BASE_URL"),
+        )
+        llm = OpenAILLM(client, args.model, temperature=args.temperature)
+        llm.name = args.model
+        return llm
+
+    if args.provider == "local":
+        import openai
+        from agentdojo.agent_pipeline.llms.local_llm import LocalLLM
+
+        port = os.getenv("LOCAL_LLM_PORT", "8000")
+        client = openai.OpenAI(
+            api_key="EMPTY",
+            base_url=f"http://localhost:{port}/v1",
+        )
+        llm = LocalLLM(client, args.model, temperature=args.temperature)
+        llm.name = args.model
+        return llm
+
+    raise ValueError(f"Unsupported provider: {args.provider}")
+
+
+def _build_pipeline_config(args: argparse.Namespace, llm):
+    from agentdojo.agent_pipeline.agent_pipeline import PipelineConfig
+
+    return PipelineConfig(
+        llm=llm,
+        model_id=None,
+        defense=None,
+        tool_delimiter="tool",
+        system_message_name=None,
+        system_message=None,
+        tool_output_format="yaml",
+    )
+
+
+def _run_real_smoke(args: argparse.Namespace, plan) -> dict:
+    if not plan.executable:
+        _blocked({
+            "mode": "run",
+            "status": "blocked",
+            "reason": "AgentDojo pipeline components are not available for traced custom construction.",
+            "agentdojo": plan.to_dict(),
+        })
+
+    load_suites = _import_load_suites(args.agentdojo_package)
+    suite = load_suites.get_suite(args.benchmark_version, args.suite)
+    user_task = suite.get_user_task_by_id(args.user_task)
+
+    prompt = getattr(user_task, "PROMPT", getattr(user_task, "GOAL", ""))
+    adapter = AgentDojoTraceAdapter(args.trace)
+    adapter.start_episode(
+        suite_name=args.suite,
+        user_task_id=args.user_task,
+        injection_task_id=None,
+        attack_type=None,
+        prompt=prompt,
+    )
+
+    llm = _build_llm(args)
+    config = _build_pipeline_config(args, llm)
+    pipeline = build_traced_agentdojo_pipeline(
+        config=config,
+        adapter=adapter,
+        max_iters=args.max_steps,
+        max_tool_calls=args.max_tool_calls if args.cost_guard else None,
+    )
+
+    if not args.allow_provider_call:
+        _blocked({
+            "mode": "run",
+            "status": "blocked",
+            "reason": (
+                "Traced AgentDojo pipeline wiring was constructed, but provider calls require "
+                "--allow-provider-call."
+            ),
+            "suite": args.suite,
+            "user_task": args.user_task,
+            "trace": args.trace,
+            "provider": _provider_status(args),
+            "cost_guard": _cost_guard_status(args),
+            "agentdojo": plan.to_dict(),
+            "wiring": {
+                "pipeline": type(pipeline).__module__ + "." + type(pipeline).__name__,
+                "native_executor_replaced": "agentdojo.agent_pipeline.tool_execution.ToolsExecutor",
+                "replacement": "src.adapters.agentdojo_tools_wrapper.TraceHookedToolsExecutor",
+                "monkey_patch": False,
+            },
+        })
+
+    utility, security = suite.run_task_with_pipeline(
+        pipeline,
+        user_task,
+        injection_task=None,
+        injections={},
+    )
+    adapter.final_hook(
+        model_output={
+            "status": "completed",
+            "suite": args.suite,
+            "user_task": args.user_task,
+        },
+        utility=utility,
+        security=security,
+    )
+    return {
+        "mode": "run",
+        "status": "ok",
+        "suite": args.suite,
+        "user_task": args.user_task,
+        "trace": args.trace,
+        "provider": _provider_status(args),
+        "cost_guard": _cost_guard_status(args),
+        "utility": utility,
+        "security": security,
+        "agentdojo": plan.to_dict(),
+        "wiring": {
+            "native_executor_replaced": "agentdojo.agent_pipeline.tool_execution.ToolsExecutor",
+            "replacement": "src.adapters.agentdojo_tools_wrapper.TraceHookedToolsExecutor",
+            "monkey_patch": False,
+        },
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare a minimal AgentDojo Safety Thermometer smoke trace run.")
     parser.add_argument("--suite", default="workspace")
@@ -120,6 +263,11 @@ def main() -> None:
     parser.add_argument("--list-suites", action="store_true")
     parser.add_argument("--list-tasks", action="store_true")
     parser.add_argument("--allow-real-run", action="store_true")
+    parser.add_argument(
+        "--allow-provider-call",
+        action="store_true",
+        help="Allow the smoke run to call the configured LLM provider after traced pipeline wiring succeeds.",
+    )
     parser.add_argument("--cost-guard", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
@@ -144,7 +292,7 @@ def main() -> None:
 
     plan = inspect_agentdojo_pipeline(package_name=args.agentdojo_package)
     if not args.allow_real_run:
-        message = {
+        _blocked({
             "mode": "run",
             "status": "blocked",
             "reason": "Real smoke runs require --allow-real-run.",
@@ -154,9 +302,7 @@ def main() -> None:
             "provider": _provider_status(args),
             "cost_guard": _cost_guard_status(args),
             "agentdojo": plan.to_dict(),
-        }
-        print(json.dumps(message, indent=2), file=sys.stderr)
-        raise SystemExit(2)
+        })
 
     provider = _provider_status(args)
     if args.provider == "openai-compatible":
@@ -165,36 +311,35 @@ def main() -> None:
             if not os.getenv(name)
         ]
         if missing:
-            message = {
+            _blocked({
                 "mode": "run",
                 "status": "blocked",
                 "reason": "Missing required OpenAI-compatible provider environment variables.",
                 "missing_env": missing,
                 "provider": provider,
-            }
-            print(json.dumps(message, indent=2), file=sys.stderr)
-            raise SystemExit(2)
+            })
 
-    message = {
-        "mode": "run",
-        "status": "not_implemented",
-        "reason": (
-            "Real AgentDojo smoke execution is not wired yet. "
-            "This script will not silently run native AgentDojo without TraceHookedToolsExecutor."
-        ),
-        "suite": args.suite,
-        "user_task": args.user_task,
-        "trace": args.trace,
-        "provider": provider,
-        "cost_guard": _cost_guard_status(args),
-        "agentdojo": plan.to_dict(),
-        "native_constructor_to_mirror": "agentdojo.agent_pipeline.agent_pipeline.AgentPipeline.from_config",
-        "native_executor_to_replace": "agentdojo.agent_pipeline.tool_execution.ToolsExecutor",
-        "replacement": "src.adapters.agentdojo_tools_wrapper.TraceHookedToolsExecutor",
-        "next_step": "Implement custom pipeline construction that replaces ToolsExecutor with TraceHookedToolsExecutor.",
-    }
-    print(json.dumps(message, indent=2), file=sys.stderr)
-    raise SystemExit(2)
+    try:
+        result = _run_real_smoke(args, plan)
+    except Exception as exc:
+        _blocked({
+            "mode": "run",
+            "status": "blocked",
+            "reason": f"{type(exc).__name__}: {exc}",
+            "suite": args.suite,
+            "user_task": args.user_task,
+            "trace": args.trace,
+            "provider": provider,
+            "cost_guard": _cost_guard_status(args),
+            "agentdojo": plan.to_dict(),
+            "wiring": {
+                "native_constructor_mirrored": "agentdojo.agent_pipeline.agent_pipeline.AgentPipeline.from_config",
+                "native_executor_replaced": "agentdojo.agent_pipeline.tool_execution.ToolsExecutor",
+                "replacement": "src.adapters.agentdojo_tools_wrapper.TraceHookedToolsExecutor",
+                "monkey_patch": False,
+            },
+        })
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

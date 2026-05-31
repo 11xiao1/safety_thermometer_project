@@ -121,7 +121,7 @@ def test_openai_compatible_does_not_print_api_key():
     assert "openai_api_key_present" in combined
 
 
-def test_agentdojo_smoke_allow_real_run_fails_safely_if_wiring_incomplete():
+def test_agentdojo_smoke_allow_real_run_builds_wiring_but_requires_provider_call_opt_in():
     env = os.environ.copy()
     env["OPENAI_API_KEY"] = "secret-test-key"
     env["OPENAI_BASE_URL"] = "https://proxy.example.test/v1"
@@ -132,8 +132,9 @@ def test_agentdojo_smoke_allow_real_run_fails_safely_if_wiring_incomplete():
 
     assert result.returncode == 2
     payload = json.loads(result.stderr)
-    assert payload["status"] == "not_implemented"
-    assert "TraceHookedToolsExecutor" in payload["reason"]
+    assert payload["status"] == "blocked"
+    assert "--allow-provider-call" in payload["reason"]
+    assert payload["wiring"]["replacement"] == "src.adapters.agentdojo_tools_wrapper.TraceHookedToolsExecutor"
 
 
 def test_max_steps_and_max_tool_calls_are_parsed_and_reported():

@@ -53,10 +53,13 @@ class TraceHookedToolsExecutor:
         adapter: AgentDojoTraceAdapter,
         tool_output_formatter: Callable[[Any], str] = _default_tool_output_formatter,
         empty_function_name: str = EMPTY_FUNCTION_NAME,
+        max_tool_calls: int | None = None,
     ) -> None:
         self.adapter = adapter
         self.output_formatter = tool_output_formatter
         self.empty_function_name = empty_function_name
+        self.max_tool_calls = max_tool_calls
+        self.tool_calls_seen = 0
 
     def _available_tool_names(self, runtime: Any) -> set[str]:
         functions = _value(runtime, "functions", {}) or {}
@@ -87,6 +90,25 @@ class TraceHookedToolsExecutor:
             "error": error,
         }
 
+    def _append_error_result(
+        self,
+        tool_result_messages: list[dict[str, Any]],
+        tool_call: Any,
+        assistant_message: Any,
+        env: Any,
+        error: str,
+    ) -> None:
+        self.adapter.pre_step_hook(tool_call, assistant_message=assistant_message, env_before=env)
+        self.adapter.post_step_hook(
+            tool_call,
+            formatted_observation=error,
+            error=error,
+            assistant_message=assistant_message,
+            env_before=env,
+            env_after=env,
+        )
+        tool_result_messages.append(self._tool_result_message(tool_call, "", error))
+
     def query(
         self,
         query: str,
@@ -111,33 +133,36 @@ class TraceHookedToolsExecutor:
         tool_result_messages = []
         available_tool_names = self._available_tool_names(runtime)
         for tool_call in tool_calls:
+            self.tool_calls_seen += 1
+            if self.max_tool_calls is not None and self.tool_calls_seen > self.max_tool_calls:
+                self._append_error_result(
+                    tool_result_messages,
+                    tool_call,
+                    assistant_message,
+                    env,
+                    f"Tool call limit exceeded: max_tool_calls={self.max_tool_calls}.",
+                )
+                continue
+
             function_name = str(_value(tool_call, "function", ""))
             if function_name == self.empty_function_name:
-                error = "Empty function name provided. Provide a valid function name."
-                self.adapter.pre_step_hook(tool_call, assistant_message=assistant_message, env_before=env)
-                self.adapter.post_step_hook(
+                self._append_error_result(
+                    tool_result_messages,
                     tool_call,
-                    formatted_observation=error,
-                    error=error,
-                    assistant_message=assistant_message,
-                    env_before=env,
-                    env_after=env,
+                    assistant_message,
+                    env,
+                    "Empty function name provided. Provide a valid function name.",
                 )
-                tool_result_messages.append(self._tool_result_message(tool_call, "", error))
                 continue
 
             if available_tool_names and function_name not in available_tool_names:
-                error = f"Invalid tool {function_name} provided."
-                self.adapter.pre_step_hook(tool_call, assistant_message=assistant_message, env_before=env)
-                self.adapter.post_step_hook(
+                self._append_error_result(
+                    tool_result_messages,
                     tool_call,
-                    formatted_observation=error,
-                    error=error,
-                    assistant_message=assistant_message,
-                    env_before=env,
-                    env_after=env,
+                    assistant_message,
+                    env,
+                    f"Invalid tool {function_name} provided.",
                 )
-                tool_result_messages.append(self._tool_result_message(tool_call, "", error))
                 continue
 
             args = self._normalize_args(tool_call)

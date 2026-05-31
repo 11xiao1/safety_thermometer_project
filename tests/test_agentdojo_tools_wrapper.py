@@ -140,3 +140,27 @@ def test_wrapper_jsonl_can_be_loaded_with_existing_loader(tmp_path):
     events = load_trace_events(trace_path)
     assert len(events) == 2
     assert events[0].episode_id == "workspace:user_task_0:none:none"
+
+
+def test_tool_call_limit_blocks_extra_runtime_calls(tmp_path):
+    trace_path = tmp_path / "agentdojo_trace.jsonl"
+    adapter = AgentDojoTraceAdapter(trace_path)
+    adapter.start_episode("workspace", "user_task_0", prompt="Read then summarize.")
+    executor = TraceHookedToolsExecutor(adapter, max_tool_calls=1)
+    runtime = FakeRuntime()
+
+    _, _, _, messages, _ = executor.query(
+        "query",
+        runtime,
+        env={},
+        messages=[_assistant_message([
+            FakeToolCall("read_file", {"path": "a.md"}, "call_1"),
+            FakeToolCall("send_email", {"to": "a@example.com"}, "call_2"),
+        ])],
+        extra_args={},
+    )
+
+    assert [call[1] for call in runtime.calls] == ["read_file"]
+    assert messages[-1]["error"] == "Tool call limit exceeded: max_tool_calls=1."
+    events = load_trace_events(trace_path)
+    assert [event.hook_type for event in events] == ["pre_step", "post_step", "pre_step", "post_step"]

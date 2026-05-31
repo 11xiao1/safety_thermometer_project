@@ -1,7 +1,6 @@
 # AgentDojo Smoke Run Plan
 
-This is a design note for the first real AgentDojo smoke run. It does not
-implement the run yet.
+This is a design note for the first real AgentDojo smoke run.
 
 ## Goal
 
@@ -86,12 +85,20 @@ This hooked executor should sit inside AgentDojo's existing
 AgentDojo components: system message, initial query setup, LLM element, and
 tools loop.
 
+### Implemented wiring
+
+The project now has `build_traced_agentdojo_pipeline(...)`, which mirrors
+`AgentPipeline.from_config(...)` for AgentDojo 0.1.35 and replaces only the
+native `ToolsExecutor(...)` with `TraceHookedToolsExecutor(...)`. The smoke
+script constructs this traced pipeline before any provider call.
+
+Provider calls still require an explicit second opt-in:
+`--allow-provider-call`. This keeps tests and dry runs from accidentally
+spending API budget.
+
 ### Still unimplemented
 
-- The custom pipeline construction helper.
-- A real AgentDojo suite/task selection for the first smoke run.
-- Final hook emission from the `TaskSuite.run_task_with_pipeline(...)`
-  completion boundary.
+- Injection-task smoke runs and attack-generated injections.
 - Environment diffing for `state_delta`.
 - Label/severity mapping from AgentDojo `utility/security` to training labels.
 
@@ -209,14 +216,15 @@ Dry-run the selected task before spending any API budget:
 F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --provider openai-compatible --model <model-name> --max-steps 3 --max-tool-calls 3 --temperature 0 --dry-run
 ```
 
-Future first real smoke command:
+First real smoke command:
 
 ```powershell
-F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --provider openai-compatible --model <model-name> --max-steps 3 --max-tool-calls 3 --temperature 0 --allow-real-run
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --provider openai-compatible --model <model-name> --max-steps 3 --max-tool-calls 3 --temperature 0 --allow-real-run --allow-provider-call
 ```
 
-Current status: the non-dry-run path still fails safely until custom pipeline
-wiring is complete. It will not silently run native AgentDojo without tracing.
+Current status: the non-dry-run path builds the traced custom pipeline. Without
+`--allow-provider-call`, it fails safely after wiring and before any provider
+request. It will not silently run native AgentDojo without tracing.
 
 Expected real-run output:
 
