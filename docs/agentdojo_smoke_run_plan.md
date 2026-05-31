@@ -174,3 +174,62 @@ python scripts\replay.py --trace outputs\agentdojo_smoke_trace.jsonl --out outpu
 
 Only after this succeeds should the trace be considered usable for prefix
 dataset experiments.
+
+## OpenAI-Compatible Proxy API
+
+The first real smoke run can use an OpenAI-compatible proxy endpoint, but it
+must be explicit and cost-limited.
+
+Set secrets only in the shell environment. Do not commit them, paste them into
+docs, write them into traces, or log them:
+
+```powershell
+$env:OPENAI_API_KEY = "<your proxy key>"
+$env:OPENAI_BASE_URL = "<your proxy base url>"
+```
+
+The smoke script reports only whether these variables are present. It must not
+print the API key or store it in JSONL output.
+
+List available suites:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --list-suites
+```
+
+List user tasks for a suite:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --list-tasks --suite workspace
+```
+
+Dry-run the selected task before spending any API budget:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --provider openai-compatible --model <model-name> --max-steps 3 --max-tool-calls 3 --temperature 0 --dry-run
+```
+
+Future first real smoke command:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_smoke_trace.py --suite workspace --user-task user_task_0 --trace outputs\agentdojo_smoke_trace.jsonl --provider openai-compatible --model <model-name> --max-steps 3 --max-tool-calls 3 --temperature 0 --allow-real-run
+```
+
+Current status: the non-dry-run path still fails safely until custom pipeline
+wiring is complete. It will not silently run native AgentDojo without tracing.
+
+Expected real-run output:
+
+`outputs/agentdojo_smoke_trace.jsonl`
+
+Validate the trace:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe -c "from src.monitor.logger import load_trace_events; events = load_trace_events('outputs/agentdojo_smoke_trace.jsonl'); print(len(events)); print([e.hook_type for e in events[:5]])"
+```
+
+Replay the trace into prefix data:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\replay.py --trace outputs\agentdojo_smoke_trace.jsonl --out outputs\agentdojo_smoke_prefix_dataset.csv
+```
