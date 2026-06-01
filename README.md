@@ -1,0 +1,1 @@
+# safety_thermometer_project
