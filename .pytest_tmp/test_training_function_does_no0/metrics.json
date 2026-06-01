@@ -1,0 +1,54 @@
+{
+  "diagnostic_only": [
+    "oracle_violation"
+  ],
+  "features": [
+    "risk_score",
+    "f_sensitive_access",
+    "f_state_modifying",
+    "cumulative_sensitive_access_count"
+  ],
+  "fit_mode": "trained",
+  "limitations": [
+    "Mini-batch validation only.",
+    "Not a final benchmark result.",
+    "Test split was not used.",
+    "No calibration was fit."
+  ],
+  "logistic": {
+    "auprc": 1.0,
+    "auroc": 1.0,
+    "f1_at_50": 1.0,
+    "mean_score_risky": 99.75600632532337,
+    "mean_score_safe": 0.23939472666844758
+  },
+  "manifest_episode_counts": {
+    "test": 1,
+    "train": 2,
+    "val": 1
+  },
+  "manifest_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_training_function_does_no0\\split_manifest.json",
+  "random_forest": {
+    "auprc": 1.0,
+    "auroc": 1.0,
+    "f1_at_50": 1.0,
+    "mean_score_risky": 66.0,
+    "mean_score_safe": 2.0
+  },
+  "random_state": 7,
+  "target": "future_risk_label",
+  "test_split_used": false,
+  "train_label_counts": {
+    "0": 2,
+    "1": 2
+  },
+  "train_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_training_function_does_no0\\agentdojo_train.csv",
+  "train_rows": 4,
+  "val_label_counts": {
+    "0": 1,
+    "1": 1
+  },
+  "val_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_training_function_does_no0\\agentdojo_val.csv",
+  "val_rows": 2,
+  "warnings": []
+}

@@ -115,6 +115,7 @@ def test_first_real_run_command_shape_dry_run_preflight():
     assert payload["outputs"]["user_task_0"]["trace"].endswith("workspace_user_task_0_trace.jsonl")
     assert payload["outputs"]["user_task_0"]["prefix"].endswith("workspace_user_task_0_prefix_dataset.csv")
     assert payload["merged_out"] == "outputs\\agentdojo_mini_batch\\merged\\workspace_mini_batch_prefix_dataset.csv"
+    assert payload["merged_trace"] == "outputs\\agentdojo_mini_batch\\merged\\workspace_mini_batch_trace.jsonl"
     assert payload["summary"] == "outputs/agentdojo_mini_batch/run_summary.json"
     assert payload["cost_guard"] == {
         "enabled": True,
@@ -124,6 +125,14 @@ def test_first_real_run_command_shape_dry_run_preflight():
         "temperature": 0.0,
     }
     assert payload["will_call_provider"] is False
+
+
+def test_custom_merged_out_derives_round_specific_merged_trace_path():
+    merged_out = "outputs\\agentdojo_mini_batch_round2\\merged\\workspace_mini_batch_round2_prefix_dataset.csv"
+
+    assert runner.derive_merged_trace_path(merged_out) == (
+        "outputs\\agentdojo_mini_batch_round2\\merged\\workspace_mini_batch_round2_trace.jsonl"
+    )
 
 
 def test_non_dry_run_requires_allow_real_run_before_provider_call():
@@ -245,8 +254,95 @@ def test_run_mini_batch_with_fake_task_runner_writes_summary_and_outputs(tmp_pat
     assert payload["completed_tasks"] == ["user_task_0", "user_task_1"]
     assert payload["merged_trace_rows"] == 2
     assert payload["merged_prefix_rows"] == 2
+    assert payload["merged_trace"] == str(tmp_path / "merged" / "prefix_trace.jsonl")
+    assert (tmp_path / "merged" / "prefix_trace.jsonl").exists()
+    assert "agentdojo_mini_batch/merged/workspace_mini_batch_trace.jsonl" not in summary.read_text(encoding="utf-8")
     assert summary.exists()
     assert "fake-local" in summary.read_text(encoding="utf-8")
+
+
+def test_round2_merged_trace_uses_current_trace_dir_and_not_hardcoded_path(tmp_path, monkeypatch):
+    trace_dir = tmp_path / "outputs" / "agentdojo_mini_batch_round2" / "traces"
+    prefix_dir = tmp_path / "outputs" / "agentdojo_mini_batch_round2" / "prefix"
+    merged_out = (
+        tmp_path
+        / "outputs"
+        / "agentdojo_mini_batch_round2"
+        / "merged"
+        / "workspace_mini_batch_round2_prefix_dataset.csv"
+    )
+    summary = tmp_path / "outputs" / "agentdojo_mini_batch_round2" / "run_summary.json"
+
+    monkeypatch.setattr(runner, "_available_user_tasks", lambda args: ["user_task_0", "user_task_1"])
+
+    class FakePlan:
+        def to_dict(self):
+            return {"status": "fake"}
+
+    monkeypatch.setattr(runner, "inspect_agentdojo_pipeline", lambda package_name="agentdojo": FakePlan())
+
+    def fake_run_one_task(args, task_id, trace_path, prefix_path, plan):
+        assert str(trace_dir) in trace_path
+        with open(trace_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"episode_id": task_id, "hook_type": "final"}) + "\n")
+        with open(prefix_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["episode_id", "step_id", "future_risk_label"])
+            writer.writerow([task_id, 1, 0])
+        return {
+            "task_id": task_id,
+            "status": "ok",
+            "trace": trace_path,
+            "prefix": prefix_path,
+            "trace_event_count": 1,
+            "prefix_rows": 1,
+            "prefix_columns": 3,
+            "utility": True,
+            "security": True,
+        }
+
+    monkeypatch.setattr(runner, "_run_one_task", fake_run_one_task)
+    args = argparse.Namespace(
+        suite="workspace",
+        limit=2,
+        task_start=None,
+        tasks=None,
+        trace_dir=str(trace_dir),
+        prefix_dir=str(prefix_dir),
+        merged_out=str(merged_out),
+        merged_trace="ignored-hardcoded-path.jsonl",
+        summary=str(summary),
+        provider="local",
+        model="fake-local",
+        benchmark_version="v1.2.2",
+        max_steps=3,
+        max_tool_calls=3,
+        max_output_tokens=512,
+        temperature=0,
+        allow_real_run=True,
+        allow_provider_call=True,
+        cost_guard=True,
+        dry_run=False,
+        agentdojo_package="agentdojo",
+    )
+
+    payload = runner.run_mini_batch(args)
+    expected_trace = (
+        tmp_path
+        / "outputs"
+        / "agentdojo_mini_batch_round2"
+        / "merged"
+        / "workspace_mini_batch_round2_trace.jsonl"
+    )
+
+    assert payload["merged_trace"] == str(expected_trace)
+    assert expected_trace.exists()
+    assert payload["merged_trace_rows"] == 2
+    assert "ignored-hardcoded-path" not in summary.read_text(encoding="utf-8")
+    assert "agentdojo_mini_batch/merged/workspace_mini_batch_trace.jsonl" not in summary.read_text(encoding="utf-8")
+    merged_lines = expected_trace.read_text(encoding="utf-8").splitlines()
+    assert len(merged_lines) == 2
+    assert all("user_task_" in line for line in merged_lines)
 
 
 def test_run_mini_batch_records_max_tool_calls_stop_reason(tmp_path, monkeypatch):
@@ -304,3 +400,77 @@ def test_run_mini_batch_records_max_tool_calls_stop_reason(tmp_path, monkeypatch
     assert result["max_tool_calls"] == 3
     assert result["max_tool_calls_hit"] is True
     assert json.loads(summary.read_text(encoding="utf-8"))["task_results"][0]["stop_reason"] == "max_tool_calls_exceeded"
+
+
+def test_stopped_task_partial_trace_is_merged_with_completed_task_traces(tmp_path, monkeypatch):
+    trace_dir = tmp_path / "traces"
+    prefix_dir = tmp_path / "prefixes"
+    merged_out = tmp_path / "merged" / "round2_prefix_dataset.csv"
+    summary = tmp_path / "summary.json"
+
+    monkeypatch.setattr(runner, "_available_user_tasks", lambda args: ["user_task_0", "user_task_1"])
+
+    class FakePlan:
+        def to_dict(self):
+            return {"status": "fake"}
+
+    monkeypatch.setattr(runner, "inspect_agentdojo_pipeline", lambda package_name="agentdojo": FakePlan())
+    monkeypatch.setattr(runner, "_tool_call_count_from_trace", lambda trace_path: 3)
+
+    def fake_run_one_task(args, task_id, trace_path, prefix_path, plan):
+        with open(trace_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"episode_id": task_id, "hook_type": "final"}) + "\n")
+        if task_id == "user_task_1":
+            raise MaxToolCallsExceeded(max_tool_calls=3, tool_calls_seen=3)
+        with open(prefix_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["episode_id", "step_id", "future_risk_label"])
+            writer.writerow([task_id, 1, 0])
+        return {
+            "task_id": task_id,
+            "status": "ok",
+            "trace": trace_path,
+            "prefix": prefix_path,
+            "trace_event_count": 1,
+            "prefix_rows": 1,
+            "prefix_columns": 3,
+            "utility": True,
+            "security": True,
+        }
+
+    monkeypatch.setattr(runner, "_run_one_task", fake_run_one_task)
+    args = argparse.Namespace(
+        suite="workspace",
+        limit=2,
+        task_start=None,
+        tasks=None,
+        trace_dir=str(trace_dir),
+        prefix_dir=str(prefix_dir),
+        merged_out=str(merged_out),
+        merged_trace="ignored.jsonl",
+        summary=str(summary),
+        provider="local",
+        model="fake-local",
+        benchmark_version="v1.2.2",
+        max_steps=3,
+        max_tool_calls=3,
+        max_output_tokens=512,
+        temperature=0,
+        allow_real_run=True,
+        allow_provider_call=True,
+        cost_guard=True,
+        dry_run=False,
+        agentdojo_package="agentdojo",
+    )
+
+    payload = runner.run_mini_batch(args)
+    merged_trace = tmp_path / "merged" / "round2_trace.jsonl"
+
+    assert payload["status"] == "stopped"
+    assert payload["completed_tasks"] == ["user_task_0"]
+    assert payload["merged_trace"] == str(merged_trace)
+    assert payload["merged_trace_rows"] == 2
+    assert payload["merged_prefix_rows"] == 1
+    merged_lines = merged_trace.read_text(encoding="utf-8").splitlines()
+    assert any("user_task_0" in line for line in merged_lines)
+    assert any("user_task_1" in line for line in merged_lines)

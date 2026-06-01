@@ -27,7 +27,6 @@ DEFAULT_TRACE_DIR = "outputs/agentdojo_mini_batch/traces"
 DEFAULT_PREFIX_DIR = "outputs/agentdojo_mini_batch/prefixes"
 DEFAULT_MERGED_OUT = "outputs/agentdojo_mini_batch/merged/workspace_mini_batch_prefix_dataset.csv"
 DEFAULT_SUMMARY = "outputs/agentdojo_mini_batch/run_summary.json"
-DEFAULT_TRACE_MERGED = "outputs/agentdojo_mini_batch/merged/workspace_mini_batch_trace.jsonl"
 
 
 def _blocked(message: dict[str, Any], exit_code: int = 2) -> None:
@@ -91,6 +90,17 @@ def output_paths_for_task(suite: str, task_id: str, trace_dir: str | Path, prefi
     }
 
 
+def derive_merged_trace_path(merged_out: str | Path) -> str:
+    merged_out = Path(merged_out)
+    filename = merged_out.name
+    suffix = "_prefix_dataset.csv"
+    if filename.endswith(suffix):
+        trace_name = filename[: -len(suffix)] + "_trace.jsonl"
+    else:
+        trace_name = merged_out.stem + "_trace.jsonl"
+    return str(merged_out.with_name(trace_name))
+
+
 def _available_user_tasks(args: argparse.Namespace) -> list[str]:
     payload = list_tasks(args.agentdojo_package, args.benchmark_version, args.suite)
     if payload.get("status") != "ok":
@@ -112,7 +122,7 @@ def build_dry_run_report(args: argparse.Namespace) -> dict[str, Any]:
             for task_id in selected
         },
         "merged_out": args.merged_out,
-        "merged_trace": args.merged_trace,
+        "merged_trace": derive_merged_trace_path(args.merged_out),
         "summary": args.summary,
         "provider": _provider_status(args),
         "cost_guard": _cost_guard_status(args),
@@ -247,6 +257,7 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
                 "provider": _provider_status(args),
             })
 
+    merged_trace = derive_merged_trace_path(args.merged_out)
     task_results = []
     completed_trace_paths = []
     completed_prefix_paths = []
@@ -270,6 +281,8 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
                 "max_tool_calls_hit": True,
             }
             task_results.append(result)
+            if Path(paths["trace"]).exists():
+                completed_trace_paths.append(paths["trace"])
             break
         except Exception as exc:
             tool_call_count = _tool_call_count_from_trace(paths["trace"])
@@ -290,7 +303,7 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
         completed_trace_paths.append(paths["trace"])
         completed_prefix_paths.append(paths["prefix"])
 
-    merged_trace_rows = _merge_trace_files(completed_trace_paths, args.merged_trace) if completed_trace_paths else 0
+    merged_trace_rows = _merge_trace_files(completed_trace_paths, merged_trace) if completed_trace_paths else 0
     merged_prefix_shape = (
         _merge_prefix_files(completed_prefix_paths, args.merged_out)
         if completed_prefix_paths
@@ -305,7 +318,7 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
         "completed_tasks": [result["task_id"] for result in task_results if result["status"] == "ok"],
         "failed_tasks": [result["task_id"] for result in task_results if result["status"] != "ok"],
         "task_results": task_results,
-        "merged_trace": args.merged_trace,
+        "merged_trace": merged_trace,
         "merged_trace_rows": merged_trace_rows,
         "merged_prefix": args.merged_out,
         "merged_prefix_rows": merged_prefix_shape["rows"],
@@ -333,7 +346,7 @@ def main() -> None:
     parser.add_argument("--trace-dir", default=DEFAULT_TRACE_DIR)
     parser.add_argument("--prefix-dir", default=DEFAULT_PREFIX_DIR)
     parser.add_argument("--merged-out", default=DEFAULT_MERGED_OUT)
-    parser.add_argument("--merged-trace", default=DEFAULT_TRACE_MERGED)
+    parser.add_argument("--merged-trace", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--summary", default=DEFAULT_SUMMARY)
     parser.add_argument("--provider", choices=["local", "openai-compatible"], default="openai-compatible")
     parser.add_argument("--model", default=None)

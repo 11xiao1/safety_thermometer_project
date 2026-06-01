@@ -64,44 +64,57 @@ workspace
 
 ## Current exact next task
 
-Fix AgentDojo mini-batch cost guard so max_tool_calls is enforced globally per task across retries.
+Fix AgentDojo mini-batch merged trace path and offline merge behavior.
 
 Primary goal:
-Ensure --max-tool-calls limits the total number of tool calls for each user task, including AgentDojo retry attempts when model_output is None. The limit must not reset silently across retries.
+Ensure run_agentdojo_mini_batch.py writes the merged trace JSONL to the correct round-specific output path, derived from the current --merged-out argument, and never hardcodes the original outputs/agentdojo_mini_batch path.
 
 Primary files:
 - scripts/run_agentdojo_mini_batch.py
-- scripts/run_agentdojo_smoke_trace.py
-- src/adapters/agentdojo_tools_wrapper.py
 - tests/test_agentdojo_mini_batch_runner.py
-- tests/test_agentdojo_smoke_script.py
 
 Context:
-During the first real mini-batch, user_task_2 produced 19 trace/prefix rows despite --max-tool-calls 3, likely because AgentDojo retried after model_output=None. The current guard appears to apply per attempt or per wrapper instance, not globally per task.
+During round2, the command used:
+- --trace-dir outputs/agentdojo_mini_batch_round2/traces
+- --prefix-dir outputs/agentdojo_mini_batch_round2/prefix
+- --merged-out outputs/agentdojo_mini_batch_round2/merged/workspace_mini_batch_round2_prefix_dataset.csv
+
+The run produced:
+- outputs/agentdojo_mini_batch_round2/merged/workspace_mini_batch_round2_prefix_dataset.csv
+
+But the JSON summary reported merged_trace as:
+- outputs/agentdojo_mini_batch/merged/workspace_mini_batch_trace.jsonl
+
+This is wrong. The expected round2 merged trace path is:
+- outputs/agentdojo_mini_batch_round2/merged/workspace_mini_batch_round2_trace.jsonl
 
 Required behavior:
-- max_tool_calls must be enforced globally per task across retries.
-- Once the task-level tool-call budget is exhausted, no more tool calls should be executed for that task.
-- The runner should stop safely and record a clear status/reason such as "max_tool_calls_exceeded".
-- The run_summary.json should report:
-  - configured max_tool_calls
-  - actual tool_call_count per task
-  - whether the limit was hit
-  - stop reason if any
+- Derive merged trace path from --merged-out by replacing suffix:
+  _prefix_dataset.csv -> _trace.jsonl
+- Write merged trace JSONL to the same merged directory as --merged-out.
+- Merge all per-task trace files from the current --trace-dir.
+- Do not overwrite prior batch outputs.
+- If a task stops due to max_tool_calls_exceeded, preserve traces from completed tasks and any partial stopped-task trace if it exists.
+- run_summary.json should report the actual merged trace path for this run.
 - Existing dry-run behavior must remain unchanged.
-- Tests must not call providers.
-- Tests must not run real AgentDojo.
-- Use fake/mock runtime/task paths to simulate retry attempts.
+- Do not call provider.
+- Do not run AgentDojo.
 - Do not modify Risk Estimator.
 - Do not modify calibration.
 - Do not modify replay.py unless strictly necessary.
 - Do not add RL.
-- Do not generate new reports unless required by tests.
+- Do not generate reports.
 - Do not modify docs/codex_handoff_current.md.
-- Keep existing tests passing.
+- Do not run pytest; the user will run tests manually.
 
-Exit criteria:
-- F:\Anaconda_envs\envs\safetythermo\python.exe -m pytest -q --basetemp .pytest_tmp passes.
-- A test proves max_tool_calls is global per task across simulated retries.
-- A test proves a second retry cannot exceed the remaining task-level tool-call budget.
-- Existing single smoke and mini-batch dry-run tests still pass.
+Tests:
+- Add or update tests proving that a custom --merged-out path produces a matching round-specific merged trace path.
+- Test that no hardcoded outputs/agentdojo_mini_batch path is used when --merged-out points to outputs/agentdojo_mini_batch_round2.
+- Test that per-task trace files from the current trace-dir are merged into the expected trace file.
+- Test that stopped task summaries do not prevent merged trace/prefix outputs from being written for completed tasks.
+
+After finishing:
+- Report modified files.
+- Report tests added or updated.
+- Report the exact pytest command the user should run.
+- Provide a suggested replacement for the next "Current exact next task" section.

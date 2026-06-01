@@ -1,0 +1,63 @@
+{
+  "episode_counts": {
+    "test": 2,
+    "train": 6,
+    "val": 2
+  },
+  "episode_ids": {
+    "test": [
+      "episode_8",
+      "episode_7"
+    ],
+    "train": [
+      "episode_2",
+      "episode_6",
+      "episode_0",
+      "episode_1",
+      "episode_5",
+      "episode_4"
+    ],
+    "val": [
+      "episode_3",
+      "episode_9"
+    ]
+  },
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\prefix.csv",
+  "label_counts": {
+    "test": {
+      "0": 2,
+      "1": 2
+    },
+    "train": {
+      "0": 8,
+      "1": 4
+    },
+    "val": {
+      "1": 4
+    }
+  },
+  "method_notes": {
+    "guardrail": "Do not fit calibration on test data and do not randomly split prefix rows.",
+    "test": "Test split is reserved for final Table 3 / Table 4 reporting.",
+    "train": "Train split is reserved for future Risk Estimator training.",
+    "val": "Validation split is reserved for future calibration and threshold selection."
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\splits\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\splits\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\splits\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\splits\\agentdojo_val.csv"
+  },
+  "row_counts": {
+    "test": 4,
+    "train": 12,
+    "val": 4
+  },
+  "seed": 11,
+  "split_ratios": {
+    "test": 0.2,
+    "train": 0.6,
+    "val": 0.2
+  },
+  "warnings": []
+}
