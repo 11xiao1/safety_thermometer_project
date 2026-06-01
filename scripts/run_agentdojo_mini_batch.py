@@ -18,6 +18,7 @@ from scripts.run_agentdojo_smoke_trace import (  # noqa: E402
     list_tasks,
 )
 from src.adapters.agentdojo_pipeline_builder import inspect_agentdojo_pipeline  # noqa: E402
+from src.adapters.agentdojo_tools_wrapper import MAX_TOOL_CALLS_EXCEEDED_REASON, MaxToolCallsExceeded  # noqa: E402
 from src.monitor.logger import load_trace_events  # noqa: E402
 from src.monitor.replay import make_prefix_dataset  # noqa: E402
 
@@ -176,6 +177,7 @@ def _run_one_task(args: argparse.Namespace, task_id: str, trace_path: str, prefi
     result = _run_real_smoke(task_args, plan)
 
     events = load_trace_events(trace_path)
+    tool_call_count = sum(1 for event in events if event.hook_type == "pre_step")
     prefix_df = make_prefix_dataset(trace_path)
     Path(prefix_path).parent.mkdir(parents=True, exist_ok=True)
     prefix_df.to_csv(prefix_path, index=False)
@@ -186,11 +188,26 @@ def _run_one_task(args: argparse.Namespace, task_id: str, trace_path: str, prefi
         "trace": trace_path,
         "prefix": prefix_path,
         "trace_event_count": len(events),
+        "tool_call_count": tool_call_count,
+        "max_tool_calls": args.max_tool_calls,
+        "max_tool_calls_hit": args.max_tool_calls is not None and tool_call_count >= args.max_tool_calls,
+        "stop_reason": None,
         "prefix_rows": int(len(prefix_df)),
         "prefix_columns": int(len(prefix_df.columns)),
         "utility": result.get("utility"),
         "security": result.get("security"),
     }
+
+
+def _tool_call_count_from_trace(trace_path: str) -> int:
+    path = Path(trace_path)
+    if not path.exists():
+        return 0
+    try:
+        events = load_trace_events(path)
+    except Exception:
+        return 0
+    return sum(1 for event in events if event.hook_type == "pre_step")
 
 
 def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
@@ -239,13 +256,33 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
         Path(paths["prefix"]).parent.mkdir(parents=True, exist_ok=True)
         try:
             result = _run_one_task(args, task_id, paths["trace"], paths["prefix"], plan)
+        except MaxToolCallsExceeded as exc:
+            tool_call_count = _tool_call_count_from_trace(paths["trace"])
+            result = {
+                "task_id": task_id,
+                "status": "stopped",
+                "stop_reason": MAX_TOOL_CALLS_EXCEEDED_REASON,
+                "trace": paths["trace"],
+                "prefix": paths["prefix"],
+                "error": str(exc),
+                "tool_call_count": tool_call_count,
+                "max_tool_calls": args.max_tool_calls,
+                "max_tool_calls_hit": True,
+            }
+            task_results.append(result)
+            break
         except Exception as exc:
+            tool_call_count = _tool_call_count_from_trace(paths["trace"])
             result = {
                 "task_id": task_id,
                 "status": "failed",
+                "stop_reason": "error",
                 "trace": paths["trace"],
                 "prefix": paths["prefix"],
                 "error": f"{type(exc).__name__}: {exc}",
+                "tool_call_count": tool_call_count,
+                "max_tool_calls": args.max_tool_calls,
+                "max_tool_calls_hit": args.max_tool_calls is not None and tool_call_count >= args.max_tool_calls,
             }
             task_results.append(result)
             break

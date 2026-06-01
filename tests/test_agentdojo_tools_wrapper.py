@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from src.adapters.agentdojo_adapter import AgentDojoTraceAdapter
-from src.adapters.agentdojo_tools_wrapper import TraceHookedToolsExecutor
+from src.adapters.agentdojo_tools_wrapper import MaxToolCallsExceeded, TraceHookedToolsExecutor
 from src.monitor.logger import load_trace_events
 
 
@@ -142,25 +142,101 @@ def test_wrapper_jsonl_can_be_loaded_with_existing_loader(tmp_path):
     assert events[0].episode_id == "workspace:user_task_0:none:none"
 
 
-def test_tool_call_limit_blocks_extra_runtime_calls(tmp_path):
+def test_tool_call_limit_stops_before_extra_runtime_call(tmp_path):
     trace_path = tmp_path / "agentdojo_trace.jsonl"
     adapter = AgentDojoTraceAdapter(trace_path)
     adapter.start_episode("workspace", "user_task_0", prompt="Read then summarize.")
     executor = TraceHookedToolsExecutor(adapter, max_tool_calls=1)
     runtime = FakeRuntime()
 
-    _, _, _, messages, _ = executor.query(
+    try:
+        executor.query(
+            "query",
+            runtime,
+            env={},
+            messages=[_assistant_message([
+                FakeToolCall("read_file", {"path": "a.md"}, "call_1"),
+                FakeToolCall("send_email", {"to": "a@example.com"}, "call_2"),
+            ])],
+            extra_args={},
+        )
+    except MaxToolCallsExceeded as exc:
+        assert exc.max_tool_calls == 1
+    else:
+        raise AssertionError("Expected MaxToolCallsExceeded")
+
+    assert [call[1] for call in runtime.calls] == ["read_file"]
+    events = load_trace_events(trace_path)
+    assert [event.hook_type for event in events] == ["pre_step", "post_step"]
+
+
+def test_tool_call_limit_is_global_across_simulated_retries(tmp_path):
+    trace_path = tmp_path / "agentdojo_trace.jsonl"
+    adapter = AgentDojoTraceAdapter(trace_path)
+    adapter.start_episode("workspace", "user_task_0", prompt="Read then summarize.")
+    executor = TraceHookedToolsExecutor(adapter, max_tool_calls=2)
+    runtime = FakeRuntime()
+
+    executor.query(
         "query",
         runtime,
         env={},
-        messages=[_assistant_message([
-            FakeToolCall("read_file", {"path": "a.md"}, "call_1"),
-            FakeToolCall("send_email", {"to": "a@example.com"}, "call_2"),
-        ])],
+        messages=[_assistant_message([FakeToolCall("read_file", {"path": "a.md"}, "call_1")])],
+        extra_args={},
+    )
+    executor.query(
+        "query",
+        runtime,
+        env={},
+        messages=[_assistant_message([FakeToolCall("send_email", {"to": "a@example.com"}, "call_2")])],
         extra_args={},
     )
 
-    assert [call[1] for call in runtime.calls] == ["read_file"]
-    assert messages[-1]["error"] == "Tool call limit exceeded: max_tool_calls=1."
-    events = load_trace_events(trace_path)
-    assert [event.hook_type for event in events] == ["pre_step", "post_step", "pre_step", "post_step"]
+    try:
+        executor.query(
+            "query",
+            runtime,
+            env={},
+            messages=[_assistant_message([FakeToolCall("read_file", {"path": "b.md"}, "call_3")])],
+            extra_args={},
+        )
+    except MaxToolCallsExceeded as exc:
+        assert exc.tool_calls_seen == 2
+    else:
+        raise AssertionError("Expected MaxToolCallsExceeded on retry after budget exhaustion")
+
+    assert [call[1] for call in runtime.calls] == ["read_file", "send_email"]
+
+
+def test_second_retry_cannot_exceed_remaining_tool_call_budget(tmp_path):
+    trace_path = tmp_path / "agentdojo_trace.jsonl"
+    adapter = AgentDojoTraceAdapter(trace_path)
+    adapter.start_episode("workspace", "user_task_0", prompt="Read then summarize.")
+    executor = TraceHookedToolsExecutor(adapter, max_tool_calls=2)
+    runtime = FakeRuntime()
+
+    executor.query(
+        "query",
+        runtime,
+        env={},
+        messages=[_assistant_message([FakeToolCall("read_file", {"path": "a.md"}, "call_1")])],
+        extra_args={},
+    )
+
+    try:
+        executor.query(
+            "query",
+            runtime,
+            env={},
+            messages=[_assistant_message([
+                FakeToolCall("send_email", {"to": "a@example.com"}, "call_2"),
+                FakeToolCall("read_file", {"path": "b.md"}, "call_3"),
+            ])],
+            extra_args={},
+        )
+    except MaxToolCallsExceeded as exc:
+        assert exc.tool_calls_seen == 2
+    else:
+        raise AssertionError("Expected MaxToolCallsExceeded after consuming remaining budget")
+
+    assert [call[1] for call in runtime.calls] == ["read_file", "send_email"]

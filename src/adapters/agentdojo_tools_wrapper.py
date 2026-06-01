@@ -15,6 +15,17 @@ from src.adapters.agentdojo_adapter import AgentDojoTraceAdapter
 
 
 EMPTY_FUNCTION_NAME = "EMPTY"
+MAX_TOOL_CALLS_EXCEEDED_REASON = "max_tool_calls_exceeded"
+
+
+class MaxToolCallsExceeded(RuntimeError):
+    def __init__(self, max_tool_calls: int, tool_calls_seen: int) -> None:
+        self.max_tool_calls = max_tool_calls
+        self.tool_calls_seen = tool_calls_seen
+        super().__init__(
+            f"{MAX_TOOL_CALLS_EXCEEDED_REASON}: max_tool_calls={max_tool_calls}, "
+            f"tool_calls_seen={tool_calls_seen}"
+        )
 
 
 def _value(obj: Any, name: str, default: Any = None) -> Any:
@@ -133,17 +144,6 @@ class TraceHookedToolsExecutor:
         tool_result_messages = []
         available_tool_names = self._available_tool_names(runtime)
         for tool_call in tool_calls:
-            self.tool_calls_seen += 1
-            if self.max_tool_calls is not None and self.tool_calls_seen > self.max_tool_calls:
-                self._append_error_result(
-                    tool_result_messages,
-                    tool_call,
-                    assistant_message,
-                    env,
-                    f"Tool call limit exceeded: max_tool_calls={self.max_tool_calls}.",
-                )
-                continue
-
             function_name = str(_value(tool_call, "function", ""))
             if function_name == self.empty_function_name:
                 self._append_error_result(
@@ -166,6 +166,12 @@ class TraceHookedToolsExecutor:
                 continue
 
             args = self._normalize_args(tool_call)
+            if self.max_tool_calls is not None and self.tool_calls_seen >= self.max_tool_calls:
+                raise MaxToolCallsExceeded(
+                    max_tool_calls=self.max_tool_calls,
+                    tool_calls_seen=self.tool_calls_seen,
+                )
+            self.tool_calls_seen += 1
             pre_event = self.adapter.pre_step_hook(tool_call, assistant_message=assistant_message, env_before=env)
             tool_result, error = runtime.run_function(env, function_name, args)
             formatted_result = self.output_formatter(tool_result)

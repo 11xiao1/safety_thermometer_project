@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from scripts import run_agentdojo_mini_batch as runner
+from src.adapters.agentdojo_tools_wrapper import MaxToolCallsExceeded
 
 
 SCRIPT = "scripts/run_agentdojo_mini_batch.py"
@@ -246,3 +247,60 @@ def test_run_mini_batch_with_fake_task_runner_writes_summary_and_outputs(tmp_pat
     assert payload["merged_prefix_rows"] == 2
     assert summary.exists()
     assert "fake-local" in summary.read_text(encoding="utf-8")
+
+
+def test_run_mini_batch_records_max_tool_calls_stop_reason(tmp_path, monkeypatch):
+    trace_dir = tmp_path / "traces"
+    prefix_dir = tmp_path / "prefixes"
+    merged_out = tmp_path / "merged" / "prefix.csv"
+    merged_trace = tmp_path / "merged" / "trace.jsonl"
+    summary = tmp_path / "summary.json"
+
+    monkeypatch.setattr(runner, "_available_user_tasks", lambda args: ["user_task_0"])
+
+    class FakePlan:
+        def to_dict(self):
+            return {"status": "fake"}
+
+    monkeypatch.setattr(runner, "inspect_agentdojo_pipeline", lambda package_name="agentdojo": FakePlan())
+    monkeypatch.setattr(runner, "_tool_call_count_from_trace", lambda trace_path: 3)
+
+    def fake_run_one_task(args, task_id, trace_path, prefix_path, plan):
+        raise MaxToolCallsExceeded(max_tool_calls=3, tool_calls_seen=3)
+
+    monkeypatch.setattr(runner, "_run_one_task", fake_run_one_task)
+    args = argparse.Namespace(
+        suite="workspace",
+        limit=1,
+        task_start=None,
+        tasks=None,
+        trace_dir=str(trace_dir),
+        prefix_dir=str(prefix_dir),
+        merged_out=str(merged_out),
+        merged_trace=str(merged_trace),
+        summary=str(summary),
+        provider="local",
+        model="fake-local",
+        benchmark_version="v1.2.2",
+        max_steps=3,
+        max_tool_calls=3,
+        max_output_tokens=512,
+        temperature=0,
+        allow_real_run=True,
+        allow_provider_call=True,
+        cost_guard=True,
+        dry_run=False,
+        agentdojo_package="agentdojo",
+    )
+
+    payload = runner.run_mini_batch(args)
+
+    assert payload["status"] == "stopped"
+    assert payload["failed_tasks"] == ["user_task_0"]
+    result = payload["task_results"][0]
+    assert result["status"] == "stopped"
+    assert result["stop_reason"] == "max_tool_calls_exceeded"
+    assert result["tool_call_count"] == 3
+    assert result["max_tool_calls"] == 3
+    assert result["max_tool_calls_hit"] is True
+    assert json.loads(summary.read_text(encoding="utf-8"))["task_results"][0]["stop_reason"] == "max_tool_calls_exceeded"
