@@ -31,6 +31,8 @@ RL is not part of the current phase.
 - run_agentdojo_smoke_trace.py dry-run works.
 - First traced AgentDojo smoke task works.
 - AgentDojo trace can be replayed into prefix dataset.
+- add agentdojo smoke report
+
 
 ## Current environment
 
