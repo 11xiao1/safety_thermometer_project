@@ -32,6 +32,9 @@ RL is not part of the current phase.
 - First traced AgentDojo smoke task works.
 - AgentDojo trace can be replayed into prefix dataset.
 - add agentdojo smoke report
+- AgentDojo prefix dataset splitter works by episode_id.
+- Guarded AgentDojo mini-batch runner works in dry-run and tested fake-run paths.
+- Offline AgentDojo mini-batch report generator works on mock outputs.
 
 
 ## Current environment
@@ -55,65 +58,75 @@ slack
 travel
 workspace
 
-## Current blocking point
-
-Real AgentDojo smoke run is now blocked only on explicit provider-call opt-in
-and valid provider configuration. The script builds the traced custom pipeline
-before any provider request and requires `--allow-provider-call` to actually
-call the LLM.
-
-## Current task
-
-Next task:
-
-Run one real traced AgentDojo smoke task with a configured provider, then
-validate and replay the emitted JSONL.
-
-Do not:
-- modify AgentDojo source
-- monkey patch by default
-- modify replay.py
-- modify Risk Estimator
-- modify calibration
-- add RL
-- call provider in tests
-- print API keys
-- silently run native AgentDojo without tracing
-
-Need:
-- inspect installed AgentDojo source
-- determine how AgentPipeline.from_config builds ToolsExecutionLoop
-- determine how ToolsExecutor is inserted
-- build custom pipeline with TraceHookedToolsExecutor if feasible
-- otherwise fail safely with precise blocker
-- keep dry-run/list-suites/list-tasks working
-
 ## Current exact next task
 
-Create a guarded AgentDojo mini-batch plan.
+Prepare and validate the first real guarded AgentDojo mini-batch execution.
 
-Primary output:
+Primary goal:
+Run a small real AgentDojo mini-batch only after an explicit manual command with provider permission. The goal is to produce real mini-batch outputs for later offline reporting, splitting, and validation.
+
+Important:
+This task should not call providers inside tests. Codex should only ensure the runner, docs, and safety checks are ready. The actual provider run will be executed manually by the user.
+
+Primary files:
+- scripts/run_agentdojo_mini_batch.py
+- tests/test_agentdojo_mini_batch_runner.py
 - docs/agentdojo_mini_batch_plan.md
+- docs/codex_handoff_current.md
 
-Use:
-- suite: workspace
-- batch size: 5-10 user tasks
-- max_steps: 3
-- max_tool_calls: 3
-- max_output_tokens: 512
-- temperature: 0
+Expected real-run outputs:
+- outputs/agentdojo_mini_batch/run_summary.json
+- outputs/agentdojo_mini_batch/merged/workspace_mini_batch_trace.jsonl
+- outputs/agentdojo_mini_batch/merged/workspace_mini_batch_prefix_dataset.csv
 
-The plan must include:
-- task selection strategy
-- expected output files
-- replay/merge strategy
-- meaningful mini-scale metrics
-- non-meaningful metrics
-- stop conditions
-- next coding task: guarded mini-batch runner with --limit and --allow-provider-call
+Required preflight behavior:
+- Dry-run must work without API key.
+- Dry-run must list selected tasks.
+- Dry-run must show output paths.
+- Dry-run must show cost guards.
+- Non-dry-run must require:
+  - --allow-real-run
+  - --allow-provider-call
+- Provider calls must never happen in tests.
+- API keys and base URLs must not be printed or written to files.
+
+First real mini-batch command shape:
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_mini_batch.py ^
+  --suite workspace ^
+  --limit 5 ^
+  --task-start user_task_0 ^
+  --trace-dir outputs\agentdojo_mini_batch\traces ^
+  --prefix-dir outputs\agentdojo_mini_batch\prefix ^
+  --merged-out outputs\agentdojo_mini_batch\merged\workspace_mini_batch_prefix_dataset.csv ^
+  --provider openai-compatible ^
+  --model gpt-3.5-turbo ^
+  --max-steps 3 ^
+  --max-tool-calls 3 ^
+  --max-output-tokens 512 ^
+  --temperature 0 ^
+  --cost-guard ^
+  --allow-real-run ^
+  --allow-provider-call
+
+Validation after manual run:
+- Confirm run_summary.json exists.
+- Confirm merged trace JSONL exists.
+- Confirm merged prefix dataset exists.
+- Then run report_agentdojo_mini_batch.py.
+- Then run split_prefix_dataset.py.
+- Then create/update docs/agentdojo_mini_batch_validation.md.
 
 Rules:
-- Do not call provider.
-- Do not modify core code.
-- Do not run benchmark.
-- Do not touch Risk Estimator or calibration.
+- Do not call provider in tests.
+- Do not run AgentDojo in tests.
+- Do not modify Risk Estimator.
+- Do not modify calibration.
+- Do not modify replay.py unless strictly necessary.
+- Do not add RL.
+- Keep existing tests passing.
+
+Exit criteria:
+- F:\Anaconda_envs\envs\safetythermo\python.exe -m pytest -q --basetemp .pytest_tmp passes.
+- Dry-run command for mini-batch works.
+- Real-run command is documented but not executed by Codex.
+- If required output path or arguments are inconsistent, fix the runner/docs before manual execution.

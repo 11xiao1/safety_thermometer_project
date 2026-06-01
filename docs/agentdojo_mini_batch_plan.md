@@ -66,7 +66,7 @@ outputs/agentdojo_mini_batch/
     workspace_user_task_0_trace.jsonl
     workspace_user_task_1_trace.jsonl
     ...
-  prefixes/
+  prefix/
     workspace_user_task_0_prefix_dataset.csv
     workspace_user_task_1_prefix_dataset.csv
     ...
@@ -108,6 +108,31 @@ It must not record API keys, base URLs, request payloads, or provider secrets.
 
 If an individual task fails, keep its trace and error metadata but do not merge
 an incomplete prefix CSV unless replay succeeded.
+
+## Train / Validation / Test Split Strategy
+
+After the merged prefix dataset is created, split it with:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\split_prefix_dataset.py --input outputs\agentdojo_mini_batch\merged\workspace_mini_batch_prefix_dataset.csv --out-dir outputs\splits --seed 20260601
+```
+
+The splitter must group by `episode_id`, not by row. All prefixes from the same
+episode stay in the same split.
+
+Default split:
+
+- train: 60%
+- validation: 20%
+- test: 20%
+
+Intended use:
+
+- train split: future Risk Estimator training
+- validation split: future calibration and threshold selection
+- test split: final Table 3 / Table 4 reporting only
+
+Do not fit calibration on test data. Do not randomly split prefix rows.
 
 ## Meaningful Mini-Scale Metrics
 
@@ -170,7 +195,19 @@ with the blocker. Do not continue into a full benchmark run.
 
 ## Next Coding Task
 
-Implement a guarded mini-batch runner with:
+Implemented guarded mini-batch runner:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_mini_batch.py --suite workspace --limit 5 --task-start user_task_0 --trace-dir outputs\agentdojo_mini_batch\traces --prefix-dir outputs\agentdojo_mini_batch\prefix --merged-out outputs\agentdojo_mini_batch\merged\workspace_mini_batch_prefix_dataset.csv --provider openai-compatible --model gpt-3.5-turbo --max-steps 3 --max-tool-calls 3 --max-output-tokens 512 --temperature 0 --cost-guard --dry-run
+```
+
+Real mini-batch runs must add both explicit opt-ins:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\run_agentdojo_mini_batch.py --suite workspace --limit 5 --task-start user_task_0 --trace-dir outputs\agentdojo_mini_batch\traces --prefix-dir outputs\agentdojo_mini_batch\prefix --merged-out outputs\agentdojo_mini_batch\merged\workspace_mini_batch_prefix_dataset.csv --provider openai-compatible --model gpt-3.5-turbo --max-steps 3 --max-tool-calls 3 --max-output-tokens 512 --temperature 0 --cost-guard --allow-real-run --allow-provider-call
+```
+
+The runner supports:
 
 - `--suite workspace`
 - `--limit`
@@ -190,3 +227,21 @@ Implement a guarded mini-batch runner with:
 The runner should reuse the existing traced AgentDojo pipeline construction and
 single-task replay path. It must not modify AgentDojo source, monkey patch by
 default, run the full benchmark, or touch the Risk Estimator/calibration code.
+
+## Next Coding Task
+
+Implemented offline report generator:
+
+```powershell
+F:\Anaconda_envs\envs\safetythermo\python.exe scripts\report_agentdojo_mini_batch.py --summary outputs\agentdojo_mini_batch\run_summary.json --trace outputs\agentdojo_mini_batch\merged\workspace_mini_batch_trace.jsonl --prefix outputs\agentdojo_mini_batch\merged\workspace_mini_batch_prefix_dataset.csv --out reports\agentdojo_mini_batch_report.md
+```
+
+The report generator reads existing files only. It does not call providers,
+run AgentDojo, read API keys, or make benchmark-scale/calibration claims.
+
+## Next Coding Task
+
+After a real mini-batch run exists, run the report generator and
+`scripts/split_prefix_dataset.py` on the merged prefix dataset, then create a
+short validation note that records whether both offline validation steps
+succeeded.
