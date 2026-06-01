@@ -27,11 +27,10 @@ RL is not part of the current phase.
 - AgentDojo installed in safetythermo.
 - AgentDojo adapter skeleton works.
 - TraceHookedToolsExecutor mock wrapper works.
-- AgentDojo pipeline inspection helper works.
+- AgentDojo pipeline builder works.
 - run_agentdojo_smoke_trace.py dry-run works.
-- list-suites and list-tasks work.
-- Minimal custom AgentDojo pipeline wiring is implemented locally via
-  build_traced_agentdojo_pipeline(...).
+- First traced AgentDojo smoke task works.
+- AgentDojo trace can be replayed into prefix dataset.
 
 ## Current environment
 
@@ -89,16 +88,30 @@ Need:
 
 ## Current exact next task
 
-Implement minimal real AgentDojo pipeline wiring.
+Create a guarded AgentDojo mini-batch plan.
 
-Primary files:
-- src/adapters/agentdojo_pipeline_builder.py
-- scripts/run_agentdojo_smoke_trace.py
-- tests/test_agentdojo_smoke_script.py
-- docs/agentdojo_smoke_run_plan.md
+Primary output:
+- docs/agentdojo_mini_batch_plan.md
 
-Exit criteria:
-- non-dry-run requires --allow-real-run
-- OpenAI-compatible env vars checked but never printed
-- no provider calls in tests
-- if real wiring infeasible, return exact blocker
+Use:
+- suite: workspace
+- batch size: 5-10 user tasks
+- max_steps: 3
+- max_tool_calls: 3
+- max_output_tokens: 512
+- temperature: 0
+
+The plan must include:
+- task selection strategy
+- expected output files
+- replay/merge strategy
+- meaningful mini-scale metrics
+- non-meaningful metrics
+- stop conditions
+- next coding task: guarded mini-batch runner with --limit and --allow-provider-call
+
+Rules:
+- Do not call provider.
+- Do not modify core code.
+- Do not run benchmark.
+- Do not touch Risk Estimator or calibration.
