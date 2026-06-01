@@ -161,13 +161,48 @@ def test_non_dry_run_requires_provider_call_opt_in():
     assert "https://proxy.example.test" not in result.stderr
 
 
-def test_limit_above_ten_is_blocked_in_dry_run():
-    result = _run(["--dry-run", "--limit", "11"])
+def test_large_limits_are_accepted_in_dry_run(monkeypatch):
+    available = [f"user_task_{index}" for index in range(60)]
+    monkeypatch.setattr(runner, "_available_user_tasks", lambda args: available)
+    args = argparse.Namespace(
+        suite="workspace",
+        limit=30,
+        task_start=None,
+        tasks=None,
+        trace_dir="traces",
+        prefix_dir="prefixes",
+        merged_out="merged/prefix_dataset.csv",
+        summary="summary.json",
+        provider="local",
+        model="fake-local",
+        max_steps=3,
+        max_tool_calls=3,
+        max_output_tokens=512,
+        temperature=0,
+        cost_guard=True,
+        agentdojo_package="agentdojo",
+        benchmark_version="v1.2.2",
+    )
+
+    payload_30 = runner.build_dry_run_report(args)
+    args.limit = 50
+    payload_50 = runner.build_dry_run_report(args)
+
+    assert payload_30["status"] == "ok"
+    assert payload_30["task_count"] == 30
+    assert payload_30["will_call_provider"] is False
+    assert payload_50["status"] == "ok"
+    assert payload_50["task_count"] == 50
+    assert payload_50["will_call_provider"] is False
+
+
+def test_zero_limit_is_blocked_in_dry_run():
+    result = _run(["--dry-run", "--limit", "0"])
 
     assert result.returncode == 2
     payload = json.loads(result.stderr)
     assert payload["status"] == "blocked"
-    assert "--limit must not exceed 10" in payload["reason"]
+    assert "--limit must be positive" in payload["reason"]
 
 
 def test_merge_prefix_files_keeps_single_header_and_counts_rows(tmp_path):
@@ -391,8 +426,10 @@ def test_run_mini_batch_records_max_tool_calls_stop_reason(tmp_path, monkeypatch
 
     payload = runner.run_mini_batch(args)
 
-    assert payload["status"] == "stopped"
-    assert payload["failed_tasks"] == ["user_task_0"]
+    assert payload["status"] == "partial"
+    assert payload["completed_tasks"] == []
+    assert payload["stopped_tasks"] == ["user_task_0"]
+    assert payload["failed_tasks"] == []
     result = payload["task_results"][0]
     assert result["status"] == "stopped"
     assert result["stop_reason"] == "max_tool_calls_exceeded"
@@ -408,7 +445,7 @@ def test_stopped_task_partial_trace_is_merged_with_completed_task_traces(tmp_pat
     merged_out = tmp_path / "merged" / "round2_prefix_dataset.csv"
     summary = tmp_path / "summary.json"
 
-    monkeypatch.setattr(runner, "_available_user_tasks", lambda args: ["user_task_0", "user_task_1"])
+    monkeypatch.setattr(runner, "_available_user_tasks", lambda args: ["user_task_0", "user_task_1", "user_task_2"])
 
     class FakePlan:
         def to_dict(self):
@@ -441,7 +478,7 @@ def test_stopped_task_partial_trace_is_merged_with_completed_task_traces(tmp_pat
     monkeypatch.setattr(runner, "_run_one_task", fake_run_one_task)
     args = argparse.Namespace(
         suite="workspace",
-        limit=2,
+        limit=3,
         task_start=None,
         tasks=None,
         trace_dir=str(trace_dir),
@@ -466,11 +503,14 @@ def test_stopped_task_partial_trace_is_merged_with_completed_task_traces(tmp_pat
     payload = runner.run_mini_batch(args)
     merged_trace = tmp_path / "merged" / "round2_trace.jsonl"
 
-    assert payload["status"] == "stopped"
-    assert payload["completed_tasks"] == ["user_task_0"]
+    assert payload["status"] == "partial"
+    assert payload["completed_tasks"] == ["user_task_0", "user_task_2"]
+    assert payload["stopped_tasks"] == ["user_task_1"]
+    assert payload["failed_tasks"] == []
     assert payload["merged_trace"] == str(merged_trace)
-    assert payload["merged_trace_rows"] == 2
-    assert payload["merged_prefix_rows"] == 1
+    assert payload["merged_trace_rows"] == 3
+    assert payload["merged_prefix_rows"] == 2
     merged_lines = merged_trace.read_text(encoding="utf-8").splitlines()
     assert any("user_task_0" in line for line in merged_lines)
     assert any("user_task_1" in line for line in merged_lines)
+    assert any("user_task_2" in line for line in merged_lines)

@@ -62,8 +62,6 @@ def select_tasks(
 ) -> list[str]:
     if limit <= 0:
         raise ValueError("--limit must be positive.")
-    if limit > 10:
-        raise ValueError("--limit must not exceed 10 for guarded mini-batch runs.")
 
     available_set = set(available_tasks)
     explicit_tasks = _parse_tasks(tasks)
@@ -283,7 +281,7 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
             task_results.append(result)
             if Path(paths["trace"]).exists():
                 completed_trace_paths.append(paths["trace"])
-            break
+            continue
         except Exception as exc:
             tool_call_count = _tool_call_count_from_trace(paths["trace"])
             result = {
@@ -310,13 +308,24 @@ def run_mini_batch(args: argparse.Namespace) -> dict[str, Any]:
         else {"rows": 0, "columns": 0}
     )
 
+    completed_tasks = [result["task_id"] for result in task_results if result["status"] == "ok"]
+    stopped_tasks = [result["task_id"] for result in task_results if result["status"] == "stopped"]
+    failed_tasks = [result["task_id"] for result in task_results if result["status"] == "failed"]
+    if failed_tasks:
+        batch_status = "failed"
+    elif stopped_tasks:
+        batch_status = "partial"
+    else:
+        batch_status = "ok"
+
     summary = {
         "mode": "run",
-        "status": "ok" if all(result["status"] == "ok" for result in task_results) else "stopped",
+        "status": batch_status,
         "suite": args.suite,
         "selected_tasks": selected,
-        "completed_tasks": [result["task_id"] for result in task_results if result["status"] == "ok"],
-        "failed_tasks": [result["task_id"] for result in task_results if result["status"] != "ok"],
+        "completed_tasks": completed_tasks,
+        "stopped_tasks": stopped_tasks,
+        "failed_tasks": failed_tasks,
         "task_results": task_results,
         "merged_trace": merged_trace,
         "merged_trace_rows": merged_trace_rows,

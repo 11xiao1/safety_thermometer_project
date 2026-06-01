@@ -148,6 +148,10 @@ def split_prefix_dataset(
         manifest["episode_counts"][split_name] = int(len(episodes))
         manifest["label_counts"][split_name] = _label_counts(split_df)
 
+    val_label_counts = manifest["label_counts"].get("val", {})
+    if "future_risk_label" in df.columns and manifest["row_counts"].get("val", 0) > 0 and len(val_label_counts) < 2:
+        warnings.append("Validation split has one class; validation metrics may be limited.")
+
     manifest_path = out_dir / "split_manifest.json"
     manifest["outputs"]["manifest"] = str(manifest_path)
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")

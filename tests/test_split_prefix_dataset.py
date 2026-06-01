@@ -95,6 +95,17 @@ def test_too_small_dataset_warns_and_still_writes_best_effort_split(tmp_path):
     assert sum(manifest["row_counts"].values()) == 4
 
 
+def test_validation_one_class_warns_without_failing(tmp_path):
+    input_path = tmp_path / "prefix.csv"
+    out_dir = tmp_path / "splits"
+    _write_mock_prefix_dataset(input_path, episode_count=5)
+
+    manifest = split_prefix_dataset(input_path=input_path, out_dir=out_dir, seed=42)
+
+    assert "Validation split has one class; validation metrics may be limited." in manifest["warnings"]
+    assert (out_dir / "agentdojo_val.csv").exists()
+
+
 def test_splitter_cli_runs_on_mock_prefix_dataset(tmp_path):
     input_path = tmp_path / "prefix.csv"
     out_dir = tmp_path / "splits"
