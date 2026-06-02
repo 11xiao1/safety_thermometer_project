@@ -64,70 +64,63 @@ workspace
 
 ## Current exact next task
 
-Generate a validation-only with-vs-without-disagreement ablation summary table.
+Create an AgentDojo multi-suite expansion plan and command generator without calling providers.
 
 Primary goal:
-Compare the original no-disagreement baseline against the repaired disagreement-enhanced Safety Thermometer pipeline on the same validation split. Focus on both Risk Estimator ranking metrics and early-warning containment metrics.
+Plan the next data expansion phase for Safety Thermometer by identifying remaining AgentDojo suite/task ranges and generating guarded dry-run/real-run commands. Do not call providers and do not run AgentDojo.
 
-Inputs without disagreement:
-- outputs/agentdojo_multisuite_combined/agentdojo_split_risk_estimator_metrics.json
-- outputs/agentdojo_multisuite_combined/agentdojo_calibration_metrics_val.json
-- outputs/agentdojo_multisuite_combined/agentdojo_early_warning_metrics_val.json
-- outputs/agentdojo_multisuite_combined/agentdojo_threshold_sweep_val.json
+Primary files:
+- scripts/plan_agentdojo_multisuite_expansion.py
+- tests/test_plan_agentdojo_multisuite_expansion.py
 
-Inputs with disagreement:
-- outputs/agentdojo_multisuite_disagreement/agentdojo_split_risk_estimator_metrics.json
-- outputs/agentdojo_multisuite_disagreement/agentdojo_calibration_metrics_val.json
-- outputs/agentdojo_multisuite_disagreement/agentdojo_early_warning_metrics_val.json
-- outputs/agentdojo_multisuite_disagreement/agentdojo_threshold_sweep_val.json
-
-Outputs:
-- outputs/agentdojo_validation_disagreement_ablation_summary.csv
-- outputs/agentdojo_validation_disagreement_ablation_summary.json
-
-Required columns / fields:
-- setting:
-  - without_disagreement
-  - with_disagreement
-- selected_score_column
-- selected_calibration_method
-- AUROC
-- AUPRC
-- F1@50
-- Brier score
-- ECE
-- pre_risk_auroc
-- pre_risk_auprc
-- positive_lead_time_contained_count
-- strict_positive_lead_time_rate
-- no_window_just_in_time_contained_count
-- operational_contained_count
-- operational_contained_rate
-- opportunity_adjusted_positive_lead_time_rate
-- missed_with_pre_risk_window_count
-- false_alert_episode_count
-- false_alert_episode_rate
-- recommended_verify_threshold
-- recommended_alert_threshold
-- recommended_block_threshold
-- test_split_used
-- limitation
+Inputs:
+- existing output directories under outputs/agentdojo_mini_batch*
+- outputs/agentdojo_trace_provenance_audit.json if useful
+- available AgentDojo suites:
+  - workspace
+  - slack
+  - travel
+  - banking
 
 Required behavior:
-- Use validation outputs only.
-- Do not read or use test split.
+- Inspect existing run_summary.json files and trace directories to determine already collected tasks.
+- Summarize completed, stopped, and missing tasks per suite.
+- Do not assume workspace has more than user_task_39.
+- Generate a proposed expansion plan for:
+  - remaining slack tasks
+  - travel tasks
+  - banking tasks
+- Prefer suite diversity over rerunning already completed tasks.
+- Use existing guarded run settings:
+  - provider openai-compatible
+  - model gpt-3.5-turbo
+  - max_steps 6
+  - max_tool_calls 6
+  - max_output_tokens 512
+  - temperature 0
+  - cost_guard enabled
+- Output:
+  - outputs/agentdojo_multisuite_expansion_plan.json
+  - outputs/agentdojo_multisuite_expansion_commands.txt
+
+Commands should include:
+- dry-run command
+- real-run command
+- separate output directories per suite/round
+- no command should run automatically
+
+Rules:
 - Do not call provider.
 - Do not run AgentDojo.
 - Do not train Risk Estimator.
 - Do not fit calibration.
+- Do not use test split.
 - Do not add RL.
-- Clearly mark output as validation-only ablation sanity check, not final benchmark result.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
 
 After finishing:
-- Report output paths.
-- Report the key deltas from without_disagreement to with_disagreement.
-- Report exact command used.
+- Report generated plan path.
+- Report proposed suite/task batches.
 - Report exact pytest command.
 - Suggest next Current exact next task.

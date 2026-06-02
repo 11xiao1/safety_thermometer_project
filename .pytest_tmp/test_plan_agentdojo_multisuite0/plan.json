@@ -1,0 +1,199 @@
+{
+  "benchmark_version": "v1.2.2",
+  "current_completed_unique_user_tasks": 4,
+  "outputs": {
+    "commands": "E:\\safety_thermometer_project\\.pytest_tmp\\test_plan_agentdojo_multisuite0\\commands.txt",
+    "plan": "E:\\safety_thermometer_project\\.pytest_tmp\\test_plan_agentdojo_multisuite0\\plan.json"
+  },
+  "projected_unique_user_tasks_after_plan": 12,
+  "proposed_batches": [
+    {
+      "batch_name": "slack_expansion_round1",
+      "dry_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite slack --limit 2 --tasks user_task_1,user_task_2 --trace-dir outputs/agentdojo_expansion/slack_expansion_round1\\traces --prefix-dir outputs/agentdojo_expansion/slack_expansion_round1\\prefix --merged-out outputs/agentdojo_expansion/slack_expansion_round1\\merged\\slack_expansion_round1_prefix_dataset.csv --summary outputs/agentdojo_expansion/slack_expansion_round1\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --dry-run",
+      "output_dir": "outputs/agentdojo_expansion/slack_expansion_round1",
+      "real_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite slack --limit 2 --tasks user_task_1,user_task_2 --trace-dir outputs/agentdojo_expansion/slack_expansion_round1\\traces --prefix-dir outputs/agentdojo_expansion/slack_expansion_round1\\prefix --merged-out outputs/agentdojo_expansion/slack_expansion_round1\\merged\\slack_expansion_round1_prefix_dataset.csv --summary outputs/agentdojo_expansion/slack_expansion_round1\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --allow-real-run --allow-provider-call",
+      "suite": "slack",
+      "task_count": 2,
+      "tasks": [
+        "user_task_1",
+        "user_task_2"
+      ]
+    },
+    {
+      "batch_name": "slack_expansion_round2",
+      "dry_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite slack --limit 1 --tasks user_task_3 --trace-dir outputs/agentdojo_expansion/slack_expansion_round2\\traces --prefix-dir outputs/agentdojo_expansion/slack_expansion_round2\\prefix --merged-out outputs/agentdojo_expansion/slack_expansion_round2\\merged\\slack_expansion_round2_prefix_dataset.csv --summary outputs/agentdojo_expansion/slack_expansion_round2\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --dry-run",
+      "output_dir": "outputs/agentdojo_expansion/slack_expansion_round2",
+      "real_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite slack --limit 1 --tasks user_task_3 --trace-dir outputs/agentdojo_expansion/slack_expansion_round2\\traces --prefix-dir outputs/agentdojo_expansion/slack_expansion_round2\\prefix --merged-out outputs/agentdojo_expansion/slack_expansion_round2\\merged\\slack_expansion_round2_prefix_dataset.csv --summary outputs/agentdojo_expansion/slack_expansion_round2\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --allow-real-run --allow-provider-call",
+      "suite": "slack",
+      "task_count": 1,
+      "tasks": [
+        "user_task_3"
+      ]
+    },
+    {
+      "batch_name": "travel_expansion_round1",
+      "dry_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite travel --limit 2 --tasks user_task_0,user_task_1 --trace-dir outputs/agentdojo_expansion/travel_expansion_round1\\traces --prefix-dir outputs/agentdojo_expansion/travel_expansion_round1\\prefix --merged-out outputs/agentdojo_expansion/travel_expansion_round1\\merged\\travel_expansion_round1_prefix_dataset.csv --summary outputs/agentdojo_expansion/travel_expansion_round1\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --dry-run",
+      "output_dir": "outputs/agentdojo_expansion/travel_expansion_round1",
+      "real_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite travel --limit 2 --tasks user_task_0,user_task_1 --trace-dir outputs/agentdojo_expansion/travel_expansion_round1\\traces --prefix-dir outputs/agentdojo_expansion/travel_expansion_round1\\prefix --merged-out outputs/agentdojo_expansion/travel_expansion_round1\\merged\\travel_expansion_round1_prefix_dataset.csv --summary outputs/agentdojo_expansion/travel_expansion_round1\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --allow-real-run --allow-provider-call",
+      "suite": "travel",
+      "task_count": 2,
+      "tasks": [
+        "user_task_0",
+        "user_task_1"
+      ]
+    },
+    {
+      "batch_name": "travel_expansion_round2",
+      "dry_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite travel --limit 1 --tasks user_task_2 --trace-dir outputs/agentdojo_expansion/travel_expansion_round2\\traces --prefix-dir outputs/agentdojo_expansion/travel_expansion_round2\\prefix --merged-out outputs/agentdojo_expansion/travel_expansion_round2\\merged\\travel_expansion_round2_prefix_dataset.csv --summary outputs/agentdojo_expansion/travel_expansion_round2\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --dry-run",
+      "output_dir": "outputs/agentdojo_expansion/travel_expansion_round2",
+      "real_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite travel --limit 1 --tasks user_task_2 --trace-dir outputs/agentdojo_expansion/travel_expansion_round2\\traces --prefix-dir outputs/agentdojo_expansion/travel_expansion_round2\\prefix --merged-out outputs/agentdojo_expansion/travel_expansion_round2\\merged\\travel_expansion_round2_prefix_dataset.csv --summary outputs/agentdojo_expansion/travel_expansion_round2\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --allow-real-run --allow-provider-call",
+      "suite": "travel",
+      "task_count": 1,
+      "tasks": [
+        "user_task_2"
+      ]
+    },
+    {
+      "batch_name": "banking_expansion_round1",
+      "dry_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite banking --limit 2 --tasks user_task_0,user_task_1 --trace-dir outputs/agentdojo_expansion/banking_expansion_round1\\traces --prefix-dir outputs/agentdojo_expansion/banking_expansion_round1\\prefix --merged-out outputs/agentdojo_expansion/banking_expansion_round1\\merged\\banking_expansion_round1_prefix_dataset.csv --summary outputs/agentdojo_expansion/banking_expansion_round1\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --dry-run",
+      "output_dir": "outputs/agentdojo_expansion/banking_expansion_round1",
+      "real_run_command": "F:\\Anaconda_envs\\envs\\safetythermo\\python.exe scripts\\run_agentdojo_mini_batch.py --suite banking --limit 2 --tasks user_task_0,user_task_1 --trace-dir outputs/agentdojo_expansion/banking_expansion_round1\\traces --prefix-dir outputs/agentdojo_expansion/banking_expansion_round1\\prefix --merged-out outputs/agentdojo_expansion/banking_expansion_round1\\merged\\banking_expansion_round1_prefix_dataset.csv --summary outputs/agentdojo_expansion/banking_expansion_round1\\run_summary.json --provider openai-compatible --model gpt-3.5-turbo --max-steps 6 --max-tool-calls 6 --max-output-tokens 512 --temperature 0 --cost-guard --allow-real-run --allow-provider-call",
+      "suite": "banking",
+      "task_count": 2,
+      "tasks": [
+        "user_task_0",
+        "user_task_1"
+      ]
+    }
+  ],
+  "remaining_missing_user_tasks": 8,
+  "run_settings": {
+    "cost_guard": true,
+    "max_output_tokens": 512,
+    "max_steps": 6,
+    "max_tool_calls": 6,
+    "model": "gpt-3.5-turbo",
+    "provider": "openai-compatible",
+    "temperature": 0
+  },
+  "status": "ok",
+  "suite_plans": {
+    "banking": {
+      "available_count": 2,
+      "available_tasks": [
+        "user_task_0",
+        "user_task_1"
+      ],
+      "completed_count": 0,
+      "completed_tasks": [],
+      "missing_count": 2,
+      "missing_tasks": [
+        "user_task_0",
+        "user_task_1"
+      ],
+      "run_summaries": [],
+      "stopped_count": 0,
+      "stopped_tasks": [],
+      "trace_batches": []
+    },
+    "slack": {
+      "available_count": 4,
+      "available_tasks": [
+        "user_task_0",
+        "user_task_1",
+        "user_task_2",
+        "user_task_3"
+      ],
+      "completed_count": 1,
+      "completed_tasks": [
+        "user_task_0"
+      ],
+      "missing_count": 3,
+      "missing_tasks": [
+        "user_task_1",
+        "user_task_2",
+        "user_task_3"
+      ],
+      "run_summaries": [],
+      "stopped_count": 0,
+      "stopped_tasks": [],
+      "trace_batches": [
+        {
+          "episode_ids": [
+            "slack:user_task_0:none:none"
+          ],
+          "event_count": 1,
+          "exists": true,
+          "file_count": 1,
+          "path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_plan_agentdojo_multisuite0\\slack_traces",
+          "source_batch": "slack_round1",
+          "task_ids": [
+            "user_task_0"
+          ]
+        }
+      ]
+    },
+    "travel": {
+      "available_count": 3,
+      "available_tasks": [
+        "user_task_0",
+        "user_task_1",
+        "user_task_2"
+      ],
+      "completed_count": 0,
+      "completed_tasks": [],
+      "missing_count": 3,
+      "missing_tasks": [
+        "user_task_0",
+        "user_task_1",
+        "user_task_2"
+      ],
+      "run_summaries": [],
+      "stopped_count": 0,
+      "stopped_tasks": [],
+      "trace_batches": []
+    },
+    "workspace": {
+      "available_count": 3,
+      "available_tasks": [
+        "user_task_0",
+        "user_task_1",
+        "user_task_2"
+      ],
+      "completed_count": 3,
+      "completed_tasks": [
+        "user_task_0",
+        "user_task_1",
+        "user_task_2"
+      ],
+      "missing_count": 0,
+      "missing_tasks": [],
+      "run_summaries": [],
+      "stopped_count": 0,
+      "stopped_tasks": [],
+      "trace_batches": [
+        {
+          "episode_ids": [
+            "workspace:user_task_0:none:none",
+            "workspace:user_task_1:none:none",
+            "workspace:user_task_2:none:none"
+          ],
+          "event_count": 3,
+          "exists": true,
+          "file_count": 3,
+          "path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_plan_agentdojo_multisuite0\\workspace_traces",
+          "source_batch": "workspace_round1",
+          "task_ids": [
+            "user_task_0",
+            "user_task_1",
+            "user_task_2"
+          ]
+        }
+      ]
+    }
+  },
+  "target_note": "Full available AgentDojo user tasks total 97, so 100+ unique user-task episodes is not reachable without adding injection tasks or repeated recovery/rerun episodes.",
+  "total_available_user_tasks": 12,
+  "will_call_provider": false,
+  "will_run_agentdojo": false
+}

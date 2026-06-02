@@ -1,6 +1,7 @@
 import json
 
 import pandas as pd
+import pytest
 
 from scripts.summarize_agentdojo_disagreement_ablation import (
     SUMMARY_COLUMNS,
@@ -80,7 +81,7 @@ def test_ablation_summary_writes_required_outputs_and_deltas(tmp_path):
     summary = pd.read_csv(tmp_path / "summary.csv")
     assert summary.columns.tolist() == SUMMARY_COLUMNS
     assert summary["setting"].tolist() == ["without_disagreement", "with_disagreement"]
-    assert result["deltas_with_minus_without"]["AUROC"] == 0.2
-    assert result["deltas_with_minus_without"]["operational_contained_rate"] == 0.30000000000000004
+    assert result["deltas_with_minus_without"]["AUROC"] == pytest.approx(0.2)
+    assert result["deltas_with_minus_without"]["operational_contained_rate"] == pytest.approx(0.3)
     assert result["test_split_used"] is False
     assert (tmp_path / "summary.json").exists()
