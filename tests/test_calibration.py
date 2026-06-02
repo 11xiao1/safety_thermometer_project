@@ -6,7 +6,7 @@ import pandas as pd
 from src.models.calibration import VALID_POLICIES
 
 
-PREDICTIONS = "outputs/toy_risk_estimator_predictions.csv"
+TOY_TRACE = "data/samples/toy_episodes.jsonl"
 REQUIRED_COLUMNS = [
     "episode_id",
     "step_id",
@@ -29,13 +29,37 @@ SCORE_COLUMNS = [
 
 
 def _run_calibration(tmp_path):
+    prefix_path = tmp_path / "toy_prefix_dataset.csv"
+    predictions_path = tmp_path / "toy_risk_estimator_predictions.csv"
     out_path = tmp_path / "toy_thermometer_scores.csv"
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/replay.py",
+            "--trace",
+            TOY_TRACE,
+            "--out",
+            str(prefix_path),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/train_toy_risk_estimator.py",
+            "--data",
+            str(prefix_path),
+            "--out",
+            str(predictions_path),
+        ],
+        check=True,
+    )
     subprocess.run(
         [
             sys.executable,
             "scripts/calibrate_toy_risk_estimator.py",
             "--pred",
-            PREDICTIONS,
+            str(predictions_path),
             "--out",
             str(out_path),
         ],

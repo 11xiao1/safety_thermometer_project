@@ -112,6 +112,40 @@ def test_validation_one_class_warns_without_failing(tmp_path):
     assert (out_dir / "agentdojo_val.csv").exists()
 
 
+def test_reuse_manifest_preserves_prior_episode_assignment(tmp_path):
+    input_path = tmp_path / "prefix.csv"
+    out_dir = tmp_path / "splits"
+    prior_manifest = tmp_path / "prior_manifest.json"
+    _write_mock_prefix_dataset(input_path, episode_count=5)
+    prior_manifest.write_text(
+        json.dumps(
+            {
+                "episode_ids": {
+                    "train": ["episode_2", "episode_4"],
+                    "val": ["episode_1"],
+                    "test": ["episode_0", "episode_3"],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = split_prefix_dataset(
+        input_path=input_path,
+        out_dir=out_dir,
+        seed=42,
+        prior_manifest_path=prior_manifest,
+    )
+
+    assert manifest["episode_ids"] == {
+        "train": ["episode_2", "episode_4"],
+        "val": ["episode_1"],
+        "test": ["episode_0", "episode_3"],
+    }
+    assert manifest["prior_manifest"] == str(prior_manifest)
+    assert any("Reused episode split assignment" in warning for warning in manifest["warnings"])
+
+
 def test_test_one_class_warns_without_failing(tmp_path):
     input_path = tmp_path / "prefix.csv"
     out_dir = tmp_path / "splits"

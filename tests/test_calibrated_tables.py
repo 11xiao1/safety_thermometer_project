@@ -5,7 +5,7 @@ import sys
 import pandas as pd
 
 
-THERMOMETER_SCORES = "outputs/toy_thermometer_scores.csv"
+TOY_TRACE = "data/samples/toy_episodes.jsonl"
 TABLE3_COLUMNS = [
     "Method",
     "Setting",
@@ -35,12 +35,48 @@ TABLE4_COLUMNS = [
 
 
 def _generate_tables(outdir):
+    prefix_path = outdir / "toy_prefix_dataset.csv"
+    predictions_path = outdir / "toy_risk_estimator_predictions.csv"
+    thermometer_scores = outdir / "toy_thermometer_scores.csv"
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/replay.py",
+            "--trace",
+            TOY_TRACE,
+            "--out",
+            str(prefix_path),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/train_toy_risk_estimator.py",
+            "--data",
+            str(prefix_path),
+            "--out",
+            str(predictions_path),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/calibrate_toy_risk_estimator.py",
+            "--pred",
+            str(predictions_path),
+            "--out",
+            str(thermometer_scores),
+        ],
+        check=True,
+    )
     subprocess.run(
         [
             sys.executable,
             "scripts/make_tables.py",
             "--pred",
-            THERMOMETER_SCORES,
+            str(thermometer_scores),
             "--outdir",
             str(outdir),
         ],

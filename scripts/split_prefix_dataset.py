@@ -19,6 +19,7 @@ DEFAULT_RATIOS = {
     "val": 0.2,
     "test": 0.2,
 }
+SPLIT_NAMES = ["train", "val", "test"]
 
 
 def _normalize_ratios(train_ratio: float, val_ratio: float, test_ratio: float) -> dict[str, float]:
@@ -37,9 +38,8 @@ def _normalize_ratios(train_ratio: float, val_ratio: float, test_ratio: float) -
 
 def _allocate_episode_counts(n_episodes: int, ratios: dict[str, float]) -> tuple[dict[str, int], list[str]]:
     warnings = []
-    split_names = ["train", "val", "test"]
     if n_episodes == 0:
-        return {name: 0 for name in split_names}, ["Input dataset contains no episodes."]
+        return {name: 0 for name in SPLIT_NAMES}, ["Input dataset contains no episodes."]
     if n_episodes < len([value for value in ratios.values() if value > 0]):
         warnings.append(
             "Dataset has fewer episodes than non-zero splits; at least one split will be empty."
@@ -47,11 +47,11 @@ def _allocate_episode_counts(n_episodes: int, ratios: dict[str, float]) -> tuple
     if n_episodes < 5:
         warnings.append("Dataset is very small; created a best-effort episode-level split.")
 
-    raw_counts = {name: n_episodes * ratios[name] for name in split_names}
-    counts = {name: int(raw_counts[name]) for name in split_names}
+    raw_counts = {name: n_episodes * ratios[name] for name in SPLIT_NAMES}
+    counts = {name: int(raw_counts[name]) for name in SPLIT_NAMES}
     remaining = n_episodes - sum(counts.values())
     remainders = sorted(
-        split_names,
+        SPLIT_NAMES,
         key=lambda name: (raw_counts[name] - counts[name], ratios[name]),
         reverse=True,
     )
@@ -59,15 +59,97 @@ def _allocate_episode_counts(n_episodes: int, ratios: dict[str, float]) -> tuple
         counts[name] += 1
 
     if n_episodes >= len([value for value in ratios.values() if value > 0]):
-        for name in split_names:
+        for name in SPLIT_NAMES:
             if ratios[name] <= 0 or counts[name] > 0:
                 continue
-            donor = max(split_names, key=lambda split: counts[split])
+            donor = max(SPLIT_NAMES, key=lambda split: counts[split])
             if counts[donor] > 1:
                 counts[donor] -= 1
                 counts[name] += 1
 
     return counts, warnings
+
+
+def _load_prior_episode_assignment(
+    prior_manifest_path: str | Path | None,
+    episode_ids: list[str],
+) -> tuple[dict[str, list[str]] | None, list[str]]:
+    if prior_manifest_path is None:
+        return None, []
+    prior_manifest_path = Path(prior_manifest_path)
+    if not prior_manifest_path.exists():
+        raise FileNotFoundError(f"Missing prior split manifest: {prior_manifest_path}")
+    payload = json.loads(prior_manifest_path.read_text(encoding="utf-8"))
+    prior_episode_ids = payload.get("episode_ids")
+    if not isinstance(prior_episode_ids, dict):
+        raise ValueError("Prior split manifest must contain an episode_ids object.")
+
+    available = set(episode_ids)
+    assigned: dict[str, list[str]] = {name: [] for name in SPLIT_NAMES}
+    seen: set[str] = set()
+    warnings = [f"Reused episode split assignment from {prior_manifest_path}."]
+    for split_name in SPLIT_NAMES:
+        for episode_id in prior_episode_ids.get(split_name, []):
+            episode_id = str(episode_id)
+            if episode_id in available and episode_id not in seen:
+                assigned[split_name].append(episode_id)
+                seen.add(episode_id)
+    missing_from_current = sorted(
+        str(episode_id)
+        for split_name in SPLIT_NAMES
+        for episode_id in prior_episode_ids.get(split_name, [])
+        if str(episode_id) not in available
+    )
+    if missing_from_current:
+        warnings.append(
+            f"Prior split assignment referenced {len(missing_from_current)} episodes not present in current input."
+        )
+    return assigned, warnings
+
+
+def _assign_with_prior_manifest(
+    episode_ids: list[str],
+    ratios: dict[str, float],
+    seed: int,
+    prior_manifest_path: str | Path | None,
+) -> tuple[dict[str, list[str]], list[str]]:
+    prior_assignment, warnings = _load_prior_episode_assignment(prior_manifest_path, episode_ids)
+    if prior_assignment is None:
+        rng = random.Random(seed)
+        shuffled_episode_ids = episode_ids[:]
+        rng.shuffle(shuffled_episode_ids)
+        counts, count_warnings = _allocate_episode_counts(len(shuffled_episode_ids), ratios)
+        warnings.extend(count_warnings)
+        train_end = counts["train"]
+        val_end = train_end + counts["val"]
+        return {
+            "train": shuffled_episode_ids[:train_end],
+            "val": shuffled_episode_ids[train_end:val_end],
+            "test": shuffled_episode_ids[val_end:],
+        }, warnings
+
+    assigned_ids = {episode_id for episodes in prior_assignment.values() for episode_id in episodes}
+    remaining_episode_ids = [episode_id for episode_id in episode_ids if episode_id not in assigned_ids]
+    if not remaining_episode_ids:
+        return prior_assignment, warnings
+
+    warnings.append(
+        f"Assigned {len(remaining_episode_ids)} episodes absent from the prior manifest using seed {seed}."
+    )
+    rng = random.Random(seed)
+    rng.shuffle(remaining_episode_ids)
+    split_episodes = {name: episodes[:] for name, episodes in prior_assignment.items()}
+    total_episode_count = len(episode_ids)
+    for episode_id in remaining_episode_ids:
+        target_split = min(
+            SPLIT_NAMES,
+            key=lambda split: (
+                (len(split_episodes[split]) / total_episode_count) - ratios[split],
+                len(split_episodes[split]),
+            ),
+        )
+        split_episodes[target_split].append(episode_id)
+    return split_episodes, warnings
 
 
 def _label_counts(df: pd.DataFrame) -> dict[str, int]:
@@ -91,6 +173,7 @@ def split_prefix_dataset(
     train_ratio: float = DEFAULT_RATIOS["train"],
     val_ratio: float = DEFAULT_RATIOS["val"],
     test_ratio: float = DEFAULT_RATIOS["test"],
+    prior_manifest_path: str | Path | None = None,
 ) -> dict[str, Any]:
     input_path = Path(input_path)
     out_dir = Path(out_dir)
@@ -108,20 +191,13 @@ def split_prefix_dataset(
     if df["episode_id"].isna().any():
         warnings.append("Rows with missing episode_id were found and will be excluded from all splits.")
 
-    rng = random.Random(seed)
-    shuffled_episode_ids = episode_ids[:]
-    rng.shuffle(shuffled_episode_ids)
-
-    counts, count_warnings = _allocate_episode_counts(len(shuffled_episode_ids), ratios)
-    warnings.extend(count_warnings)
-
-    train_end = counts["train"]
-    val_end = train_end + counts["val"]
-    split_episodes = {
-        "train": shuffled_episode_ids[:train_end],
-        "val": shuffled_episode_ids[train_end:val_end],
-        "test": shuffled_episode_ids[val_end:],
-    }
+    split_episodes, assignment_warnings = _assign_with_prior_manifest(
+        episode_ids,
+        ratios,
+        seed,
+        prior_manifest_path,
+    )
+    warnings.extend(assignment_warnings)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     output_paths = {
@@ -132,6 +208,7 @@ def split_prefix_dataset(
 
     manifest: dict[str, Any] = {
         "input": str(input_path),
+        "prior_manifest": str(prior_manifest_path) if prior_manifest_path is not None else None,
         "seed": seed,
         "split_ratios": ratios,
         "episode_ids": split_episodes,
@@ -183,6 +260,7 @@ def main() -> None:
     parser.add_argument("--train-ratio", type=float, default=DEFAULT_RATIOS["train"])
     parser.add_argument("--val-ratio", type=float, default=DEFAULT_RATIOS["val"])
     parser.add_argument("--test-ratio", type=float, default=DEFAULT_RATIOS["test"])
+    parser.add_argument("--reuse-manifest", default=None)
     args = parser.parse_args()
 
     manifest = split_prefix_dataset(
@@ -192,6 +270,7 @@ def main() -> None:
         train_ratio=args.train_ratio,
         val_ratio=args.val_ratio,
         test_ratio=args.test_ratio,
+        prior_manifest_path=args.reuse_manifest,
     )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     if manifest["warnings"]:

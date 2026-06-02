@@ -1,0 +1,76 @@
+{
+  "alignment_method": "strict_prior_episode_assignment",
+  "episode_counts": {
+    "test": 0,
+    "train": 1,
+    "val": 1
+  },
+  "episode_ids": {
+    "test": [],
+    "train": [
+      "slack:user_task_0:none:none"
+    ],
+    "val": [
+      "slack:user_task_1:none:none"
+    ]
+  },
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_agentdojo_pref0\\combined.csv",
+  "label_counts": {
+    "test": {},
+    "train": {
+      "0": 1
+    },
+    "val": {
+      "0": 1
+    }
+  },
+  "method_notes": {
+    "guardrail": "Strictly reuses the original no-disagreement episode assignment; no random resplit.",
+    "scope": "This task only creates aligned split files and does not train or calibrate.",
+    "test": "Test split is written for future reporting only; it is not read for training/calibration here."
+  },
+  "missing_episode_count": 0,
+  "missing_episodes": [],
+  "oracle_violation_counts": {
+    "test": {},
+    "train": {
+      "0": 1
+    },
+    "val": {
+      "0": 1
+    }
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_agentdojo_pref0\\splits\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_agentdojo_pref0\\splits\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_agentdojo_pref0\\splits\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_agentdojo_pref0\\splits\\agentdojo_val.csv"
+  },
+  "prior_manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_agentdojo_pref0\\prior_manifest.json",
+  "row_counts": {
+    "test": 0,
+    "train": 1,
+    "val": 1
+  },
+  "source_batch_counts": {
+    "test": {},
+    "train": {
+      "slack_recovery1": 1
+    },
+    "val": {
+      "slack_recovery1": 1
+    }
+  },
+  "source_suite_counts": {
+    "test": {},
+    "train": {
+      "slack": 1
+    },
+    "val": {
+      "slack": 1
+    }
+  },
+  "unmatched_extra_episode_count": 0,
+  "unmatched_extra_episodes": [],
+  "warnings": []
+}

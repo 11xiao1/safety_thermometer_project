@@ -56,6 +56,7 @@
     "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_all_prefix_rows_from_an_e0\\splits\\agentdojo_train.csv",
     "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_all_prefix_rows_from_an_e0\\splits\\agentdojo_val.csv"
   },
+  "prior_manifest": null,
   "row_counts": {
     "test": 2,
     "train": 8,

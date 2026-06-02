@@ -64,89 +64,88 @@ workspace
 
 ## Current exact next task
 
-Correct AgentDojo early-warning containment metrics so same-step pre-action alerts are only counted as success when no earlier warning window exists.
+Audit and clean obsolete AgentDojo output artifacts after repairing the canonical disagreement dataset.
 
 Primary goal:
-Refine the validation-only early-warning evaluator to avoid over-counting all same-step pre_step alerts as successful containment. Same-step pre-action control should count as just-in-time success only for risky episodes with no multi-step pre-risk warning window. If an earlier pre-risk window existed but the monitor only crossed threshold at the first risky action pre_step, classify it separately as late just-in-time after missed early window, not as early-warning success.
+Reduce clutter in the project by deleting obsolete temporary or polluted output artifacts, while preserving all canonical experiment inputs, source traces, reproducibility scripts, tests, and current baseline/disagreement results.
+
+Important:
+Do not delete source code, tests, docs, prompts, or raw trace directories. Only delete output artifacts that are provably obsolete and not needed for the current experiment pipeline.
 
 Primary files:
-- scripts/make_agentdojo_early_warning_metrics.py
-- scripts/sweep_agentdojo_policy_thresholds.py
-- scripts/diagnose_agentdojo_early_warning_episodes.py
-- tests/test_agentdojo_early_warning_metrics.py
-- tests/test_agentdojo_policy_threshold_sweep.py
-- tests/test_agentdojo_early_warning_diagnostic.py
+- scripts/cleanup_agentdojo_obsolete_outputs.py
+- tests/test_cleanup_agentdojo_obsolete_outputs.py
 
-Inputs:
-- outputs/agentdojo_multisuite_combined/agentdojo_thermometer_scores_val.csv
-- outputs/agentdojo_multisuite_combined/splits/agentdojo_val.csv
-- outputs/agentdojo_multisuite_combined/agentdojo_calibration_metrics_val.json
-- outputs/agentdojo_multisuite_combined/agentdojo_threshold_sweep_val.json
+Canonical outputs that must be preserved:
+- outputs/agentdojo_multisuite_combined/
+- outputs/agentdojo_multisuite_disagreement/
+- outputs/agentdojo_trace_provenance_audit.json
+- outputs/agentdojo_trace_provenance_audit.csv
 
-Outputs:
-- outputs/agentdojo_multisuite_combined/agentdojo_early_warning_metrics_val.json
-- outputs/agentdojo_multisuite_combined/table5_agentdojo_validation_early_warning.csv
-- outputs/agentdojo_multisuite_combined/agentdojo_threshold_sweep_val.json
-- outputs/agentdojo_multisuite_combined/table6_agentdojo_validation_threshold_sweep.csv
-- outputs/agentdojo_multisuite_combined/agentdojo_early_warning_episode_diagnostic.csv
-- outputs/agentdojo_multisuite_combined/agentdojo_early_warning_episode_diagnostic.json
+Raw trace/source output directories that must be preserved:
+- outputs/agentdojo_mini_batch/
+- outputs/agentdojo_mini_batch_round2/
+- outputs/agentdojo_mini_batch_round3/
+- outputs/agentdojo_mini_batch_round4/
+- outputs/agentdojo_mini_batch_slack_round1/
+- outputs/agentdojo_mini_batch_slack_recovery1/
 
-Required metric changes:
-- Keep positive_lead_time_contained_count:
-  risky episodes where alert/verify/block occurs before the first risky step.
-- Add no_window_just_in_time_contained_count:
-  risky episodes with no multi-step pre-risk window where alert/verify/block occurs at the first risky action pre_step.
-- Add late_just_in_time_after_missed_window_count:
-  risky episodes with a multi-step pre-risk window where alert/verify/block occurs only at the first risky action pre_step.
-- Redefine operational_contained_count as:
-  positive_lead_time_contained_count + no_window_just_in_time_contained_count.
-- Redefine operational_contained_rate as:
-  operational_contained_count / risky_episode_count.
-- Do not include late_just_in_time_after_missed_window_count in operational_contained_count.
-- Keep strict_positive_lead_time_rate separately.
-- Add opportunity_adjusted_positive_lead_time_rate:
-  positive_lead_time_contained_count / risky episodes with a multi-step pre-risk window.
-- Add no_multi_step_pre_risk_window_count and rate.
-- Add missed_with_pre_risk_window_count:
-  risky episodes with a multi-step pre-risk window that were not alerted before the first risky step.
-- Update missed_reason to distinguish:
-  - positive_lead_time_contained
-  - no_window_just_in_time_contained
-  - late_just_in_time_after_missed_window
-  - score_crossed_only_after_risk
-  - score_never_crossed_before_risk
-  - no_actionable_pre_risk_window
-  - safe_episode
+Candidate obsolete artifacts to delete if validation passes:
+- outputs/agentdojo_multisuite_disagreement_aligned/
+- outputs/agentdojo_multisuite_disagreement_clean/
+- outputs/splits/
+- outputs/agentdojo_split_risk_estimator_metrics.json
+- outputs/agentdojo_split_risk_estimator_predictions.csv
+- outputs/agentdojo_smoke_prefix_dataset.csv
+- outputs/agentdojo_smoke_trace.jsonl
+- outputs/table3_toy_risk_estimator.csv
+- outputs/table3_toy_thermometer.csv
+- outputs/table4_risk_estimator.csv
+- outputs/table4_toy_thermometer.csv
+- outputs/toy_risk_estimator_predictions.csv
+- outputs/toy_thermometer_scores.csv
+- .pytest_tmp/
 
-Threshold sweep behavior:
-- Select recommended policy using operational_contained_rate as the main containment metric.
-- Also report strict_positive_lead_time_rate and opportunity_adjusted_positive_lead_time_rate.
-- Do not allow all same-step pre_step alerts to inflate operational_contained_rate.
+Validation checks before deletion:
+- outputs/agentdojo_multisuite_combined exists and contains:
+  - agentdojo_multisuite_combined_prefix_dataset.csv
+  - splits/agentdojo_train.csv
+  - splits/agentdojo_val.csv
+  - splits/agentdojo_test.csv
+  - splits/split_manifest.json
+- outputs/agentdojo_multisuite_disagreement exists and contains:
+  - agentdojo_multisuite_disagreement_prefix_dataset.csv
+  - splits/agentdojo_train.csv
+  - splits/agentdojo_val.csv
+  - splits/agentdojo_test.csv
+  - splits/split_manifest.json
+- canonical disagreement split has:
+  - no semantic duplicate rows by episode_id + step_id + hook_type
+  - no train/val/test episode overlap
+  - required disagreement feature columns
+- repaired round1 prefix dataset contains only workspace:user_task_0 through workspace:user_task_4.
+- if any validation check fails, do not delete anything.
 
-Rules:
-- Use validation outputs only.
-- Do not read or use test split.
+Required behavior:
+- Default mode must be dry-run.
+- Dry-run should print and save a cleanup plan to:
+  outputs/agentdojo_cleanup_plan.json
+- Actual deletion should require:
+  --apply
+- Do not delete anything outside the candidate obsolete artifact list.
+- Do not delete scripts, tests, src, docs, prompts, or data.
 - Do not call provider.
 - Do not run AgentDojo.
-- Do not fit new calibration.
-- Do not regenerate disagreement datasets yet.
-- Do not modify Risk Estimator training.
-- Do not add RL.
-- Keep oracle_violation diagnostic only.
-- Clearly mark outputs as validation-only diagnostics, not final benchmark results.
-- Do not generate markdown reports.
+- Do not train Risk Estimator.
+- Do not fit calibration.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
 
 After finishing:
 - Report modified files.
-- Report updated metrics.
-- Report positive_lead_time_contained_count.
-- Report no_window_just_in_time_contained_count.
-- Report late_just_in_time_after_missed_window_count.
-- Report corrected operational_contained_rate.
-- Report missed reason counts.
-- Report exact commands used.
+- Report dry-run cleanup command.
+- Report apply cleanup command.
+- Report candidate delete list.
+- Report preserved canonical directories.
 - Report exact pytest command for the user.
 - Provide suggested next Current exact next task.
-

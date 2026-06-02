@@ -45,6 +45,7 @@
     "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_too_small_dataset_warns_a0\\splits\\agentdojo_train.csv",
     "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_too_small_dataset_warns_a0\\splits\\agentdojo_val.csv"
   },
+  "prior_manifest": null,
   "row_counts": {
     "test": 0,
     "train": 2,

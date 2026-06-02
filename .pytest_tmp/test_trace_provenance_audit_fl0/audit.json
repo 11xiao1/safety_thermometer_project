@@ -1,0 +1,154 @@
+{
+  "duplicate_episode_count_across_batches": 1,
+  "duplicate_episode_ids_across_batches": [
+    {
+      "allowed_stopped_recovery_duplicate": false,
+      "episode_id": "workspace:user_task_5:none:none",
+      "locations": [
+        {
+          "source_batch": "workspace_round1",
+          "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch\\merged\\workspace_mini_batch_trace.jsonl"
+        },
+        {
+          "source_batch": "workspace_round2",
+          "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch_round2\\merged\\workspace_mini_batch_round2_trace.jsonl"
+        }
+      ],
+      "source_batches": [
+        "workspace_round1",
+        "workspace_round2"
+      ]
+    }
+  ],
+  "outputs": {
+    "csv": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\audit.csv",
+    "json": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\audit.json"
+  },
+  "records": [
+    {
+      "episode_count": 1,
+      "episode_ids": [
+        "workspace:user_task_5:none:none"
+      ],
+      "event_count": 1,
+      "exists": true,
+      "expected_source_batch": "workspace_round1",
+      "missing_expected_task_ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "out_of_range_task_ids": [
+        5
+      ],
+      "source_kind": "merged_trace",
+      "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch\\merged\\workspace_mini_batch_trace.jsonl",
+      "suites": [
+        "workspace"
+      ],
+      "suspicion_reasons": [
+        "contains_task_ids_outside_expected_batch_range"
+      ],
+      "suspicious": true,
+      "task_ids": [
+        5
+      ],
+      "task_ids_match_expected_batch_range": false
+    },
+    {
+      "episode_count": 1,
+      "episode_ids": [
+        "workspace:user_task_5:none:none"
+      ],
+      "event_count": 1,
+      "exists": true,
+      "expected_source_batch": "workspace_round2",
+      "missing_expected_task_ids": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "out_of_range_task_ids": [],
+      "source_kind": "merged_trace",
+      "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch_round2\\merged\\workspace_mini_batch_round2_trace.jsonl",
+      "suites": [
+        "workspace"
+      ],
+      "suspicion_reasons": [],
+      "suspicious": false,
+      "task_ids": [
+        5
+      ],
+      "task_ids_match_expected_batch_range": true
+    },
+    {
+      "episode_count": 1,
+      "episode_ids": [
+        "workspace:user_task_0:none:none"
+      ],
+      "event_count": 1,
+      "exists": true,
+      "expected_source_batch": "workspace_round1",
+      "file_count": 1,
+      "missing_expected_task_ids": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "out_of_range_task_ids": [],
+      "source_kind": "trace_dir",
+      "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch\\traces",
+      "suites": [
+        "workspace"
+      ],
+      "suspicion_reasons": [
+        "trace_dir_missing_expected_task_ids"
+      ],
+      "suspicious": true,
+      "task_ids": [
+        0
+      ],
+      "task_ids_match_expected_batch_range": true,
+      "trace_files": [
+        "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch\\traces\\workspace_user_task_0_trace.jsonl"
+      ]
+    }
+  ],
+  "suspicious_files": [
+    {
+      "expected_source_batch": "workspace_round1",
+      "out_of_range_task_ids": [
+        5
+      ],
+      "source_kind": "merged_trace",
+      "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch\\merged\\workspace_mini_batch_trace.jsonl",
+      "suspicion_reasons": [
+        "contains_task_ids_outside_expected_batch_range"
+      ],
+      "task_ids": [
+        5
+      ]
+    },
+    {
+      "expected_source_batch": "workspace_round1",
+      "out_of_range_task_ids": [],
+      "source_kind": "trace_dir",
+      "source_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_trace_provenance_audit_fl0\\agentdojo_mini_batch\\traces",
+      "suspicion_reasons": [
+        "trace_dir_missing_expected_task_ids"
+      ],
+      "task_ids": [
+        0
+      ]
+    }
+  ],
+  "workspace_round1_merged_appears_to_contain_round2_tasks": true
+}

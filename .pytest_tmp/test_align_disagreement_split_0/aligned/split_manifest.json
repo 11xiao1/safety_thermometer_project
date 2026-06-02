@@ -1,0 +1,84 @@
+{
+  "alignment_method": "strict_prior_episode_assignment",
+  "episode_counts": {
+    "test": 0,
+    "train": 1,
+    "val": 1
+  },
+  "episode_ids": {
+    "test": [],
+    "train": [
+      "episode_train"
+    ],
+    "val": [
+      "episode_val"
+    ]
+  },
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_align_disagreement_split_0\\prefix.csv",
+  "label_counts": {
+    "test": {},
+    "train": {
+      "0": 2
+    },
+    "val": {
+      "1": 2
+    }
+  },
+  "method_notes": {
+    "guardrail": "Strictly reuses the original no-disagreement episode assignment; no random resplit.",
+    "scope": "This task only creates aligned split files and does not train or calibrate.",
+    "test": "Test split is written for future reporting only; it is not read for training/calibration here."
+  },
+  "missing_episode_count": 1,
+  "missing_episodes": [
+    "episode_missing"
+  ],
+  "oracle_violation_counts": {
+    "test": {},
+    "train": {
+      "0": 2
+    },
+    "val": {
+      "0": 1,
+      "1": 1
+    }
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_align_disagreement_split_0\\aligned\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_align_disagreement_split_0\\aligned\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_align_disagreement_split_0\\aligned\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_align_disagreement_split_0\\aligned\\agentdojo_val.csv"
+  },
+  "prior_manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_align_disagreement_split_0\\prior_manifest.json",
+  "row_counts": {
+    "test": 0,
+    "train": 2,
+    "val": 2
+  },
+  "source_batch_counts": {
+    "test": {},
+    "train": {
+      "workspace_round1": 2
+    },
+    "val": {
+      "workspace_round2": 2
+    }
+  },
+  "source_suite_counts": {
+    "test": {},
+    "train": {
+      "workspace": 2
+    },
+    "val": {
+      "workspace": 2
+    }
+  },
+  "unmatched_extra_episode_count": 1,
+  "unmatched_extra_episodes": [
+    "episode_extra"
+  ],
+  "warnings": [
+    "1 disagreement episodes were not in the prior manifest and were not assigned.",
+    "1 prior manifest episodes were missing from disagreement data."
+  ]
+}

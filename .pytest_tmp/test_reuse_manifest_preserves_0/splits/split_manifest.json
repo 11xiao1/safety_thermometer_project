@@ -1,0 +1,98 @@
+{
+  "episode_counts": {
+    "test": 2,
+    "train": 2,
+    "val": 1
+  },
+  "episode_ids": {
+    "test": [
+      "episode_0",
+      "episode_3"
+    ],
+    "train": [
+      "episode_2",
+      "episode_4"
+    ],
+    "val": [
+      "episode_1"
+    ]
+  },
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\prefix.csv",
+  "label_counts": {
+    "test": {
+      "0": 2,
+      "1": 2
+    },
+    "train": {
+      "0": 4
+    },
+    "val": {
+      "1": 2
+    }
+  },
+  "method_notes": {
+    "guardrail": "Do not fit calibration on test data and do not randomly split prefix rows.",
+    "test": "Test split is reserved for final Table 3 / Table 4 reporting.",
+    "train": "Train split is reserved for future Risk Estimator training.",
+    "val": "Validation split is reserved for future calibration and threshold selection."
+  },
+  "oracle_violation_counts": {
+    "test": {
+      "False": 3,
+      "True": 1
+    },
+    "train": {
+      "False": 4
+    },
+    "val": {
+      "False": 1,
+      "True": 1
+    }
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\splits\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\splits\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\splits\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\splits\\agentdojo_val.csv"
+  },
+  "prior_manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\prior_manifest.json",
+  "row_counts": {
+    "test": 4,
+    "train": 4,
+    "val": 2
+  },
+  "seed": 42,
+  "source_batch_counts": {
+    "test": {
+      "batch_0": 4
+    },
+    "train": {
+      "batch_1": 2,
+      "batch_2": 2
+    },
+    "val": {
+      "batch_1": 2
+    }
+  },
+  "source_suite_counts": {
+    "test": {
+      "slack": 2,
+      "workspace": 2
+    },
+    "train": {
+      "workspace": 4
+    },
+    "val": {
+      "slack": 2
+    }
+  },
+  "split_ratios": {
+    "test": 0.2,
+    "train": 0.6,
+    "val": 0.2
+  },
+  "warnings": [
+    "Reused episode split assignment from E:\\safety_thermometer_project\\.pytest_tmp\\test_reuse_manifest_preserves_0\\prior_manifest.json.",
+    "Validation split has one class; validation metrics may be limited."
+  ]
+}
