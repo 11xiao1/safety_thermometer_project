@@ -64,88 +64,70 @@ workspace
 
 ## Current exact next task
 
-Audit and clean obsolete AgentDojo output artifacts after repairing the canonical disagreement dataset.
+Generate a validation-only with-vs-without-disagreement ablation summary table.
 
 Primary goal:
-Reduce clutter in the project by deleting obsolete temporary or polluted output artifacts, while preserving all canonical experiment inputs, source traces, reproducibility scripts, tests, and current baseline/disagreement results.
+Compare the original no-disagreement baseline against the repaired disagreement-enhanced Safety Thermometer pipeline on the same validation split. Focus on both Risk Estimator ranking metrics and early-warning containment metrics.
 
-Important:
-Do not delete source code, tests, docs, prompts, or raw trace directories. Only delete output artifacts that are provably obsolete and not needed for the current experiment pipeline.
+Inputs without disagreement:
+- outputs/agentdojo_multisuite_combined/agentdojo_split_risk_estimator_metrics.json
+- outputs/agentdojo_multisuite_combined/agentdojo_calibration_metrics_val.json
+- outputs/agentdojo_multisuite_combined/agentdojo_early_warning_metrics_val.json
+- outputs/agentdojo_multisuite_combined/agentdojo_threshold_sweep_val.json
 
-Primary files:
-- scripts/cleanup_agentdojo_obsolete_outputs.py
-- tests/test_cleanup_agentdojo_obsolete_outputs.py
+Inputs with disagreement:
+- outputs/agentdojo_multisuite_disagreement/agentdojo_split_risk_estimator_metrics.json
+- outputs/agentdojo_multisuite_disagreement/agentdojo_calibration_metrics_val.json
+- outputs/agentdojo_multisuite_disagreement/agentdojo_early_warning_metrics_val.json
+- outputs/agentdojo_multisuite_disagreement/agentdojo_threshold_sweep_val.json
 
-Canonical outputs that must be preserved:
-- outputs/agentdojo_multisuite_combined/
-- outputs/agentdojo_multisuite_disagreement/
-- outputs/agentdojo_trace_provenance_audit.json
-- outputs/agentdojo_trace_provenance_audit.csv
+Outputs:
+- outputs/agentdojo_validation_disagreement_ablation_summary.csv
+- outputs/agentdojo_validation_disagreement_ablation_summary.json
 
-Raw trace/source output directories that must be preserved:
-- outputs/agentdojo_mini_batch/
-- outputs/agentdojo_mini_batch_round2/
-- outputs/agentdojo_mini_batch_round3/
-- outputs/agentdojo_mini_batch_round4/
-- outputs/agentdojo_mini_batch_slack_round1/
-- outputs/agentdojo_mini_batch_slack_recovery1/
-
-Candidate obsolete artifacts to delete if validation passes:
-- outputs/agentdojo_multisuite_disagreement_aligned/
-- outputs/agentdojo_multisuite_disagreement_clean/
-- outputs/splits/
-- outputs/agentdojo_split_risk_estimator_metrics.json
-- outputs/agentdojo_split_risk_estimator_predictions.csv
-- outputs/agentdojo_smoke_prefix_dataset.csv
-- outputs/agentdojo_smoke_trace.jsonl
-- outputs/table3_toy_risk_estimator.csv
-- outputs/table3_toy_thermometer.csv
-- outputs/table4_risk_estimator.csv
-- outputs/table4_toy_thermometer.csv
-- outputs/toy_risk_estimator_predictions.csv
-- outputs/toy_thermometer_scores.csv
-- .pytest_tmp/
-
-Validation checks before deletion:
-- outputs/agentdojo_multisuite_combined exists and contains:
-  - agentdojo_multisuite_combined_prefix_dataset.csv
-  - splits/agentdojo_train.csv
-  - splits/agentdojo_val.csv
-  - splits/agentdojo_test.csv
-  - splits/split_manifest.json
-- outputs/agentdojo_multisuite_disagreement exists and contains:
-  - agentdojo_multisuite_disagreement_prefix_dataset.csv
-  - splits/agentdojo_train.csv
-  - splits/agentdojo_val.csv
-  - splits/agentdojo_test.csv
-  - splits/split_manifest.json
-- canonical disagreement split has:
-  - no semantic duplicate rows by episode_id + step_id + hook_type
-  - no train/val/test episode overlap
-  - required disagreement feature columns
-- repaired round1 prefix dataset contains only workspace:user_task_0 through workspace:user_task_4.
-- if any validation check fails, do not delete anything.
+Required columns / fields:
+- setting:
+  - without_disagreement
+  - with_disagreement
+- selected_score_column
+- selected_calibration_method
+- AUROC
+- AUPRC
+- F1@50
+- Brier score
+- ECE
+- pre_risk_auroc
+- pre_risk_auprc
+- positive_lead_time_contained_count
+- strict_positive_lead_time_rate
+- no_window_just_in_time_contained_count
+- operational_contained_count
+- operational_contained_rate
+- opportunity_adjusted_positive_lead_time_rate
+- missed_with_pre_risk_window_count
+- false_alert_episode_count
+- false_alert_episode_rate
+- recommended_verify_threshold
+- recommended_alert_threshold
+- recommended_block_threshold
+- test_split_used
+- limitation
 
 Required behavior:
-- Default mode must be dry-run.
-- Dry-run should print and save a cleanup plan to:
-  outputs/agentdojo_cleanup_plan.json
-- Actual deletion should require:
-  --apply
-- Do not delete anything outside the candidate obsolete artifact list.
-- Do not delete scripts, tests, src, docs, prompts, or data.
+- Use validation outputs only.
+- Do not read or use test split.
 - Do not call provider.
 - Do not run AgentDojo.
 - Do not train Risk Estimator.
 - Do not fit calibration.
+- Do not add RL.
+- Clearly mark output as validation-only ablation sanity check, not final benchmark result.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
 
 After finishing:
-- Report modified files.
-- Report dry-run cleanup command.
-- Report apply cleanup command.
-- Report candidate delete list.
-- Report preserved canonical directories.
-- Report exact pytest command for the user.
-- Provide suggested next Current exact next task.
+- Report output paths.
+- Report the key deltas from without_disagreement to with_disagreement.
+- Report exact command used.
+- Report exact pytest command.
+- Suggest next Current exact next task.
