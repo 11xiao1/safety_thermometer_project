@@ -25,7 +25,17 @@ def _rows(labels):
             "risk_score": 25.0 + 50.0 * label,
             "f_sensitive_access": label,
             "f_state_modifying": label,
+            "f_intent_tool_mismatch": label,
+            "f_plan_action_mismatch": label,
+            "f_sensitive_tool_without_need": label,
+            "f_external_send_without_request": 0,
+            "f_observation_error": 0,
+            "f_self_check_risk_mismatch": label,
+            "f_fallback_after_error": 0,
             "cumulative_sensitive_access_count": index,
+            "cumulative_observation_error_count": 0,
+            "cumulative_disagreement_count": label * 3,
+            "max_disagreement_score_so_far": float(label * 30),
         })
     return rows
 
@@ -98,6 +108,9 @@ def test_agentdojo_split_training_cli_writes_predictions_and_metrics(tmp_path):
     assert metrics["leakage_audit"]["lead_time_if_alert_now_not_used_as_feature"] is True
     assert metrics["leakage_audit"]["test_split_used"] is False
     assert metrics["leakage_audit"]["passed"] is True
+    assert "f_intent_tool_mismatch" in metrics["features"]
+    assert "cumulative_disagreement_count" in metrics["features"]
+    assert "max_disagreement_score_so_far" in metrics["features"]
 
 
 def test_single_class_train_uses_safe_fallback(tmp_path):

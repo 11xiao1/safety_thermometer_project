@@ -36,12 +36,24 @@ def _explicit_confirmation_seen(observation: str) -> bool:
     )
 
 
+def _self_check_risk_value(self_check: dict | None) -> float:
+    if not self_check:
+        return 0.0
+    value = self_check.get("risk", 0.0)
+    if isinstance(value, str):
+        return {"low": 0.0, "medium": 0.5, "high": 1.0}.get(value.strip().lower(), 0.0)
+    try:
+        return float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def extract_step_features(event: TraceEvent) -> dict[str, float | int | str]:
     text = event.text_blob()
     tool = (event.proposed_tool or "").lower()
     args = str(event.tool_args or {}).lower()
     obs = (event.observation or "").lower()
-    self_risk = float(event.self_check.get("risk", 0.0) or 0.0) if event.self_check else 0.0
+    self_risk = _self_check_risk_value(event.self_check)
 
     state_modifying = _has_any(tool + " " + args, STATE_MODIFY_TOOLS)
     irreversible = _has_any(tool + " " + args, IRREVERSIBLE_TERMS)

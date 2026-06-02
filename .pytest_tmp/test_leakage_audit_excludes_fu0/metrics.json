@@ -6,7 +6,17 @@
     "risk_score",
     "f_sensitive_access",
     "f_state_modifying",
-    "cumulative_sensitive_access_count"
+    "f_intent_tool_mismatch",
+    "f_plan_action_mismatch",
+    "f_sensitive_tool_without_need",
+    "f_external_send_without_request",
+    "f_observation_error",
+    "f_self_check_risk_mismatch",
+    "f_fallback_after_error",
+    "cumulative_sensitive_access_count",
+    "cumulative_observation_error_count",
+    "cumulative_disagreement_count",
+    "max_disagreement_score_so_far"
   ],
   "fit_mode": "trained",
   "hist_gradient_boosting": {
@@ -55,8 +65,8 @@
     "auprc": 1.0,
     "auroc": 1.0,
     "f1_at_50": 1.0,
-    "mean_score_risky": 99.75600632532337,
-    "mean_score_safe": 0.23939472666844758
+    "mean_score_risky": 99.8138101687164,
+    "mean_score_safe": 0.18348822582124677
   },
   "manifest_episode_counts": {
     "test": 1,
@@ -68,7 +78,7 @@
     "auprc": 1.0,
     "auroc": 1.0,
     "f1_at_50": 1.0,
-    "mean_score_risky": 66.0,
+    "mean_score_risky": 80.0,
     "mean_score_safe": 2.0
   },
   "random_state": 7,

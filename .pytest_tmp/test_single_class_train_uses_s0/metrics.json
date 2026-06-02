@@ -6,7 +6,17 @@
     "risk_score",
     "f_sensitive_access",
     "f_state_modifying",
-    "cumulative_sensitive_access_count"
+    "f_intent_tool_mismatch",
+    "f_plan_action_mismatch",
+    "f_sensitive_tool_without_need",
+    "f_external_send_without_request",
+    "f_observation_error",
+    "f_self_check_risk_mismatch",
+    "f_fallback_after_error",
+    "cumulative_sensitive_access_count",
+    "cumulative_observation_error_count",
+    "cumulative_disagreement_count",
+    "max_disagreement_score_so_far"
   ],
   "fit_mode": "constant_prior",
   "hist_gradient_boosting": {
