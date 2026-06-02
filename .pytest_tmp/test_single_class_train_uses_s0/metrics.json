@@ -9,6 +9,42 @@
     "cumulative_sensitive_access_count"
   ],
   "fit_mode": "constant_prior",
+  "hist_gradient_boosting": {
+    "auprc": 0.5,
+    "auroc": 0.5,
+    "f1_at_50": 0.0,
+    "mean_score_risky": 0.0,
+    "mean_score_safe": 0.0
+  },
+  "leakage_audit": {
+    "excluded_columns_present_in_features": [],
+    "excluded_label_meta_columns": [
+      "episode_id",
+      "future_risk_label",
+      "future_severity",
+      "hook_type",
+      "lead_time_if_alert_now",
+      "oracle_rules",
+      "oracle_violation",
+      "policy",
+      "step_id",
+      "t_risk"
+    ],
+    "future_risk_label_not_used_as_feature": true,
+    "future_severity_not_used_as_feature": true,
+    "lead_time_if_alert_now_not_used_as_feature": true,
+    "passed": true,
+    "risk_score_note": "risk_score is retained as a prefix-observable rule-based score; it must not be computed from future labels.",
+    "risk_score_retained": true,
+    "sensitive_column_checks": {
+      "future_risk_label": true,
+      "future_severity": true,
+      "lead_time_if_alert_now": true,
+      "t_risk": true
+    },
+    "t_risk_not_used_as_feature": true,
+    "test_split_used": false
+  },
   "limitations": [
     "Mini-batch validation only.",
     "Not a final benchmark result.",

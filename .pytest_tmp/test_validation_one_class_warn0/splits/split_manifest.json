@@ -9,15 +9,15 @@
       "episode_0"
     ],
     "train": [
-      "episode_1",
       "episode_3",
+      "episode_1",
       "episode_2"
     ],
     "val": [
       "episode_4"
     ]
   },
-  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_splitter_cli_runs_on_mock0\\prefix.csv",
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_validation_one_class_warn0\\prefix.csv",
   "label_counts": {
     "test": {
       "0": 2
@@ -49,17 +49,17 @@
     }
   },
   "outputs": {
-    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_splitter_cli_runs_on_mock0\\splits\\split_manifest.json",
-    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_splitter_cli_runs_on_mock0\\splits\\agentdojo_test.csv",
-    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_splitter_cli_runs_on_mock0\\splits\\agentdojo_train.csv",
-    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_splitter_cli_runs_on_mock0\\splits\\agentdojo_val.csv"
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_validation_one_class_warn0\\splits\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_validation_one_class_warn0\\splits\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_validation_one_class_warn0\\splits\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_validation_one_class_warn0\\splits\\agentdojo_val.csv"
   },
   "row_counts": {
     "test": 2,
     "train": 6,
     "val": 2
   },
-  "seed": 19,
+  "seed": 42,
   "source_batch_counts": {
     "test": {
       "batch_0": 2

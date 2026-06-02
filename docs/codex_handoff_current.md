@@ -64,57 +64,72 @@ workspace
 
 ## Current exact next task
 
-Fix AgentDojo mini-batch merged trace path and offline merge behavior.
+Add a stronger tabular Risk Estimator baseline and audit feature leakage before calibration.
 
 Primary goal:
-Ensure run_agentdojo_mini_batch.py writes the merged trace JSONL to the correct round-specific output path, derived from the current --merged-out argument, and never hardcodes the original outputs/agentdojo_mini_batch path.
-
-Primary files:
-- scripts/run_agentdojo_mini_batch.py
-- tests/test_agentdojo_mini_batch_runner.py
+Extend the AgentDojo split Risk Estimator baseline with one stronger tabular model, while checking that no feature leaks future labels or test information.
 
 Context:
-During round2, the command used:
-- --trace-dir outputs/agentdojo_mini_batch_round2/traces
-- --prefix-dir outputs/agentdojo_mini_batch_round2/prefix
-- --merged-out outputs/agentdojo_mini_batch_round2/merged/workspace_mini_batch_round2_prefix_dataset.csv
+The current multi-suite AgentDojo validation metrics improved:
+- logistic AUROC around 0.805
+- logistic AUPRC around 0.771
+- random forest AUROC around 0.764
+- validation has both safe and risky labels
+- test_split_used is false
+- no calibration has been fit yet
 
-The run produced:
-- outputs/agentdojo_mini_batch_round2/merged/workspace_mini_batch_round2_prefix_dataset.csv
+Primary files:
+- scripts/train_agentdojo_split_risk_estimator.py
+- tests/test_agentdojo_split_training.py
 
-But the JSON summary reported merged_trace as:
-- outputs/agentdojo_mini_batch/merged/workspace_mini_batch_trace.jsonl
+Inputs:
+- outputs/agentdojo_multisuite_combined/splits/agentdojo_train.csv
+- outputs/agentdojo_multisuite_combined/splits/agentdojo_val.csv
+- outputs/agentdojo_multisuite_combined/splits/split_manifest.json
 
-This is wrong. The expected round2 merged trace path is:
-- outputs/agentdojo_mini_batch_round2/merged/workspace_mini_batch_round2_trace.jsonl
+Outputs:
+- outputs/agentdojo_multisuite_combined/agentdojo_split_risk_estimator_predictions.csv
+- outputs/agentdojo_multisuite_combined/agentdojo_split_risk_estimator_metrics.json
 
 Required behavior:
-- Derive merged trace path from --merged-out by replacing suffix:
-  _prefix_dataset.csv -> _trace.jsonl
-- Write merged trace JSONL to the same merged directory as --merged-out.
-- Merge all per-task trace files from the current --trace-dir.
-- Do not overwrite prior batch outputs.
-- If a task stops due to max_tool_calls_exceeded, preserve traces from completed tasks and any partial stopped-task trace if it exists.
-- run_summary.json should report the actual merged trace path for this run.
-- Existing dry-run behavior must remain unchanged.
+- Keep existing logistic regression baseline.
+- Keep existing random forest baseline.
+- Add HistGradientBoostingClassifier as a stronger tabular baseline.
+- Train only on train split.
+- Evaluate only on validation split.
+- Do not read or use test split.
+- Target remains future_risk_label.
+- oracle_violation remains diagnostic only, not target.
+- Add a leakage audit section to metrics JSON:
+  - confirm excluded label/meta columns
+  - confirm future_risk_label is not used as feature
+  - confirm future_severity is not used as feature
+  - confirm t_risk is not used as feature
+  - confirm lead_time_if_alert_now is not used as feature
+  - confirm test split is not used
+- Keep risk_score only if it is computed from prefix-observable evidence and not from future labels. If uncertain, add a warning.
+- Report metrics for:
+  - logistic
+  - random_forest
+  - hist_gradient_boosting
+- Metrics:
+  - AUROC
+  - AUPRC
+  - F1@50
+  - mean_score_safe
+  - mean_score_risky
+- Do not fit calibration yet.
 - Do not call provider.
 - Do not run AgentDojo.
-- Do not modify Risk Estimator.
-- Do not modify calibration.
 - Do not modify replay.py unless strictly necessary.
 - Do not add RL.
-- Do not generate reports.
+- Do not generate markdown reports.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
-
-Tests:
-- Add or update tests proving that a custom --merged-out path produces a matching round-specific merged trace path.
-- Test that no hardcoded outputs/agentdojo_mini_batch path is used when --merged-out points to outputs/agentdojo_mini_batch_round2.
-- Test that per-task trace files from the current trace-dir are merged into the expected trace file.
-- Test that stopped task summaries do not prevent merged trace/prefix outputs from being written for completed tasks.
 
 After finishing:
 - Report modified files.
 - Report tests added or updated.
-- Report the exact pytest command the user should run.
-- Provide a suggested replacement for the next "Current exact next task" section.
+- Report exact command to run training.
+- Report exact pytest command for the user.
+- Provide suggested next Current exact next task.

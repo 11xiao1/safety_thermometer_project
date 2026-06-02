@@ -3,7 +3,8 @@
     "status": "fake"
   },
   "completed_tasks": [
-    "user_task_0"
+    "user_task_0",
+    "user_task_2"
   ],
   "cost_guard": {
     "enabled": true,
@@ -12,14 +13,12 @@
     "max_tool_calls": 3,
     "temperature": 0
   },
-  "failed_tasks": [
-    "user_task_1"
-  ],
+  "failed_tasks": [],
   "merged_prefix": "E:\\safety_thermometer_project\\.pytest_tmp\\test_stopped_task_partial_trac0\\merged\\round2_prefix_dataset.csv",
   "merged_prefix_columns": 3,
-  "merged_prefix_rows": 1,
+  "merged_prefix_rows": 2,
   "merged_trace": "E:\\safety_thermometer_project\\.pytest_tmp\\test_stopped_task_partial_trac0\\merged\\round2_trace.jsonl",
-  "merged_trace_rows": 2,
+  "merged_trace_rows": 3,
   "mode": "run",
   "provider": {
     "model": "fake-local",
@@ -29,9 +28,13 @@
   "secrets_recorded": false,
   "selected_tasks": [
     "user_task_0",
+    "user_task_1",
+    "user_task_2"
+  ],
+  "status": "partial",
+  "stopped_tasks": [
     "user_task_1"
   ],
-  "status": "stopped",
   "suite": "workspace",
   "task_results": [
     {
@@ -55,6 +58,17 @@
       "task_id": "user_task_1",
       "tool_call_count": 3,
       "trace": "E:\\safety_thermometer_project\\.pytest_tmp\\test_stopped_task_partial_trac0\\traces\\workspace_user_task_1_trace.jsonl"
+    },
+    {
+      "prefix": "E:\\safety_thermometer_project\\.pytest_tmp\\test_stopped_task_partial_trac0\\prefixes\\workspace_user_task_2_prefix_dataset.csv",
+      "prefix_columns": 3,
+      "prefix_rows": 1,
+      "security": true,
+      "status": "ok",
+      "task_id": "user_task_2",
+      "trace": "E:\\safety_thermometer_project\\.pytest_tmp\\test_stopped_task_partial_trac0\\traces\\workspace_user_task_2_trace.jsonl",
+      "trace_event_count": 1,
+      "utility": true
     }
   ],
   "will_modify_agentdojo_source": false,

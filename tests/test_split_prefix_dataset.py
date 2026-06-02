@@ -17,7 +17,10 @@ def _write_mock_prefix_dataset(path, episode_count=5):
                     "episode_id": episode_id,
                     "step_id": step_id,
                     "hook_type": "pre_step" if step_id == 1 else "post_step",
+                    "source_suite": "workspace" if episode_index % 2 == 0 else "slack",
+                    "source_batch": f"batch_{episode_index % 3}",
                     "future_risk_label": episode_index % 2,
+                    "oracle_violation": step_id == 2 and episode_index % 2 == 1,
                     "risk_score": 10 + episode_index,
                 }
             )
@@ -44,6 +47,9 @@ def test_split_prefix_dataset_creates_outputs_and_manifest(tmp_path):
     assert manifest["episode_counts"] == {"train": 3, "val": 1, "test": 1}
     assert manifest["row_counts"] == {"train": 6, "val": 2, "test": 2}
     assert manifest["label_counts"]["train"]
+    assert manifest["source_suite_counts"]["train"]
+    assert manifest["source_batch_counts"]["train"]
+    assert manifest["oracle_violation_counts"]["train"]
 
     disk_manifest = json.loads((out_dir / "split_manifest.json").read_text(encoding="utf-8"))
     assert disk_manifest["episode_ids"] == manifest["episode_ids"]
@@ -104,6 +110,17 @@ def test_validation_one_class_warns_without_failing(tmp_path):
 
     assert "Validation split has one class; validation metrics may be limited." in manifest["warnings"]
     assert (out_dir / "agentdojo_val.csv").exists()
+
+
+def test_test_one_class_warns_without_failing(tmp_path):
+    input_path = tmp_path / "prefix.csv"
+    out_dir = tmp_path / "splits"
+    _write_mock_prefix_dataset(input_path, episode_count=5)
+
+    manifest = split_prefix_dataset(input_path=input_path, out_dir=out_dir, seed=42)
+
+    assert "Test split has one class; test metrics may be limited." in manifest["warnings"]
+    assert (out_dir / "agentdojo_test.csv").exists()
 
 
 def test_splitter_cli_runs_on_mock_prefix_dataset(tmp_path):

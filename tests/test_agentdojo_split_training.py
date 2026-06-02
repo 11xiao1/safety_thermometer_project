@@ -90,6 +90,14 @@ def test_agentdojo_split_training_cli_writes_predictions_and_metrics(tmp_path):
     assert metrics["train_label_counts"] == {"0": 2, "1": 2}
     assert metrics["val_label_counts"] == {"0": 1, "1": 1}
     assert metrics["logistic"]["f1_at_50"] is not None
+    assert metrics["random_forest"]["f1_at_50"] is not None
+    assert metrics["hist_gradient_boosting"]["f1_at_50"] is not None
+    assert metrics["leakage_audit"]["future_risk_label_not_used_as_feature"] is True
+    assert metrics["leakage_audit"]["future_severity_not_used_as_feature"] is True
+    assert metrics["leakage_audit"]["t_risk_not_used_as_feature"] is True
+    assert metrics["leakage_audit"]["lead_time_if_alert_now_not_used_as_feature"] is True
+    assert metrics["leakage_audit"]["test_split_used"] is False
+    assert metrics["leakage_audit"]["passed"] is True
 
 
 def test_single_class_train_uses_safe_fallback(tmp_path):
@@ -110,6 +118,7 @@ def test_single_class_train_uses_safe_fallback(tmp_path):
     predictions = pd.read_csv(predictions_path)
     assert predictions["risk_score_logistic"].tolist() == [0.0, 0.0]
     assert predictions["risk_score_random_forest"].tolist() == [0.0, 0.0]
+    assert predictions["risk_score_hist_gradient_boosting"].tolist() == [0.0, 0.0]
 
 
 def test_single_class_validation_warns_and_keeps_partial_metrics(tmp_path):
@@ -128,6 +137,8 @@ def test_single_class_validation_warns_and_keeps_partial_metrics(tmp_path):
     assert metrics["logistic"]["f1_at_50"] is not None
     assert metrics["logistic"]["mean_score_safe"] is not None
     assert metrics["logistic"]["mean_score_risky"] is None
+    assert metrics["hist_gradient_boosting"]["auroc"] is None
+    assert metrics["hist_gradient_boosting"]["auprc"] is None
 
 
 def test_training_function_does_not_read_test_split(tmp_path, monkeypatch):
@@ -149,3 +160,36 @@ def test_training_function_does_not_read_test_split(tmp_path, monkeypatch):
     )
 
     assert metrics["test_split_used"] is False
+    assert metrics["leakage_audit"]["test_split_used"] is False
+
+
+def test_leakage_audit_excludes_future_and_diagnostic_columns(tmp_path):
+    train_path, val_path, _, manifest_path = _write_split_files(tmp_path)
+    train_df = pd.read_csv(train_path)
+    val_df = pd.read_csv(val_path)
+    for df in [train_df, val_df]:
+        df["future_severity"] = df["future_risk_label"] * 10
+        df["t_risk"] = df["future_risk_label"]
+        df["lead_time_if_alert_now"] = df["future_risk_label"] + 1
+    train_df.to_csv(train_path, index=False)
+    val_df.to_csv(val_path, index=False)
+
+    metrics = train_agentdojo_split_risk_estimator(
+        train_path=train_path,
+        val_path=val_path,
+        manifest_path=manifest_path,
+        predictions_path=tmp_path / "predictions.csv",
+        metrics_path=tmp_path / "metrics.json",
+    )
+
+    audit = metrics["leakage_audit"]
+    assert audit["future_risk_label_not_used_as_feature"] is True
+    assert audit["future_severity_not_used_as_feature"] is True
+    assert audit["t_risk_not_used_as_feature"] is True
+    assert audit["lead_time_if_alert_now_not_used_as_feature"] is True
+    assert audit["excluded_columns_present_in_features"] == []
+    assert "oracle_violation" not in metrics["features"]
+    assert "future_risk_label" not in metrics["features"]
+    assert "future_severity" not in metrics["features"]
+    assert "t_risk" not in metrics["features"]
+    assert "lead_time_if_alert_now" not in metrics["features"]

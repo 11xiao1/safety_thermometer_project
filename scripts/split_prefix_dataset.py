@@ -77,6 +77,13 @@ def _label_counts(df: pd.DataFrame) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def _value_counts(df: pd.DataFrame, column: str) -> dict[str, int]:
+    if column not in df.columns:
+        return {}
+    counts = Counter("" if pd.isna(value) else str(value) for value in df[column].tolist())
+    return dict(sorted(counts.items()))
+
+
 def split_prefix_dataset(
     input_path: str | Path = DEFAULT_INPUT,
     out_dir: str | Path = DEFAULT_OUT_DIR,
@@ -131,6 +138,9 @@ def split_prefix_dataset(
         "row_counts": {},
         "episode_counts": {},
         "label_counts": {},
+        "source_suite_counts": {},
+        "source_batch_counts": {},
+        "oracle_violation_counts": {},
         "warnings": warnings,
         "outputs": {name: str(path) for name, path in output_paths.items()},
         "method_notes": {
@@ -147,10 +157,17 @@ def split_prefix_dataset(
         manifest["row_counts"][split_name] = int(len(split_df))
         manifest["episode_counts"][split_name] = int(len(episodes))
         manifest["label_counts"][split_name] = _label_counts(split_df)
+        manifest["source_suite_counts"][split_name] = _value_counts(split_df, "source_suite")
+        manifest["source_batch_counts"][split_name] = _value_counts(split_df, "source_batch")
+        manifest["oracle_violation_counts"][split_name] = _value_counts(split_df, "oracle_violation")
 
-    val_label_counts = manifest["label_counts"].get("val", {})
-    if "future_risk_label" in df.columns and manifest["row_counts"].get("val", 0) > 0 and len(val_label_counts) < 2:
-        warnings.append("Validation split has one class; validation metrics may be limited.")
+    for split_name in ["val", "test"]:
+        label_counts = manifest["label_counts"].get(split_name, {})
+        if "future_risk_label" in df.columns and manifest["row_counts"].get(split_name, 0) > 0 and len(label_counts) < 2:
+            if split_name == "val":
+                warnings.append("Validation split has one class; validation metrics may be limited.")
+            else:
+                warnings.append("Test split has one class; test metrics may be limited.")
 
     manifest_path = out_dir / "split_manifest.json"
     manifest["outputs"]["manifest"] = str(manifest_path)

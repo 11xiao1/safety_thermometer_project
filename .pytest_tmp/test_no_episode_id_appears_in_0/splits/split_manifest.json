@@ -42,6 +42,20 @@
     "train": "Train split is reserved for future Risk Estimator training.",
     "val": "Validation split is reserved for future calibration and threshold selection."
   },
+  "oracle_violation_counts": {
+    "test": {
+      "False": 3,
+      "True": 1
+    },
+    "train": {
+      "False": 10,
+      "True": 2
+    },
+    "val": {
+      "False": 2,
+      "True": 2
+    }
+  },
   "outputs": {
     "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\splits\\split_manifest.json",
     "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_no_episode_id_appears_in_0\\splits\\agentdojo_test.csv",
@@ -54,10 +68,39 @@
     "val": 4
   },
   "seed": 11,
+  "source_batch_counts": {
+    "test": {
+      "batch_1": 2,
+      "batch_2": 2
+    },
+    "train": {
+      "batch_0": 4,
+      "batch_1": 4,
+      "batch_2": 4
+    },
+    "val": {
+      "batch_0": 4
+    }
+  },
+  "source_suite_counts": {
+    "test": {
+      "slack": 2,
+      "workspace": 2
+    },
+    "train": {
+      "slack": 4,
+      "workspace": 8
+    },
+    "val": {
+      "slack": 4
+    }
+  },
   "split_ratios": {
     "test": 0.2,
     "train": 0.6,
     "val": 0.2
   },
-  "warnings": []
+  "warnings": [
+    "Validation split has one class; validation metrics may be limited."
+  ]
 }

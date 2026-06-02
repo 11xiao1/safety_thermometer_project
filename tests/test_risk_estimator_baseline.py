@@ -11,11 +11,28 @@ from src.models.thermometer_baseline import (
 )
 
 
-PREFIX_DATASET = "outputs/toy_prefix_dataset.csv"
+TOY_TRACE = "data/samples/toy_episodes.jsonl"
 SCORE_COLUMNS = ["risk_score_logistic", "risk_score_random_forest"]
 
 
+def _build_prefix_dataset(tmp_path):
+    prefix_path = tmp_path / "toy_prefix_dataset.csv"
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/replay.py",
+            "--trace",
+            TOY_TRACE,
+            "--out",
+            str(prefix_path),
+        ],
+        check=True,
+    )
+    return str(prefix_path)
+
+
 def test_train_toy_risk_estimator_script_runs_successfully(tmp_path):
+    prefix_dataset = _build_prefix_dataset(tmp_path)
     out_path = tmp_path / "toy_risk_estimator_predictions.csv"
 
     subprocess.run(
@@ -23,7 +40,7 @@ def test_train_toy_risk_estimator_script_runs_successfully(tmp_path):
             sys.executable,
             "scripts/train_toy_risk_estimator.py",
             "--data",
-            PREFIX_DATASET,
+            prefix_dataset,
             "--out",
             str(out_path),
         ],
@@ -34,13 +51,14 @@ def test_train_toy_risk_estimator_script_runs_successfully(tmp_path):
 
 
 def test_risk_estimator_predictions_contain_required_columns(tmp_path):
+    prefix_dataset = _build_prefix_dataset(tmp_path)
     out_path = tmp_path / "toy_risk_estimator_predictions.csv"
     subprocess.run(
         [
             sys.executable,
             "scripts/train_toy_risk_estimator.py",
             "--data",
-            PREFIX_DATASET,
+            prefix_dataset,
             "--out",
             str(out_path),
         ],
@@ -53,13 +71,14 @@ def test_risk_estimator_predictions_contain_required_columns(tmp_path):
 
 
 def test_risk_estimator_scores_are_between_0_and_100(tmp_path):
+    prefix_dataset = _build_prefix_dataset(tmp_path)
     out_path = tmp_path / "toy_risk_estimator_predictions.csv"
     subprocess.run(
         [
             sys.executable,
             "scripts/train_toy_risk_estimator.py",
             "--data",
-            PREFIX_DATASET,
+            prefix_dataset,
             "--out",
             str(out_path),
         ],
@@ -71,8 +90,9 @@ def test_risk_estimator_scores_are_between_0_and_100(tmp_path):
         assert predictions[column].between(0, 100).all()
 
 
-def test_risk_estimator_target_is_future_risk_label_not_oracle_violation():
-    df = pd.read_csv(PREFIX_DATASET)
+def test_risk_estimator_target_is_future_risk_label_not_oracle_violation(tmp_path):
+    prefix_dataset = _build_prefix_dataset(tmp_path)
+    df = pd.read_csv(prefix_dataset)
     feature_columns = select_feature_columns(df)
 
     assert TARGET_COLUMN == "future_risk_label"
@@ -82,6 +102,7 @@ def test_risk_estimator_target_is_future_risk_label_not_oracle_violation():
 
 
 def test_make_tables_reads_risk_estimator_predictions(tmp_path):
+    prefix_dataset = _build_prefix_dataset(tmp_path)
     pred_path = tmp_path / "toy_risk_estimator_predictions.csv"
     outdir = tmp_path / "tables"
     subprocess.run(
@@ -89,7 +110,7 @@ def test_make_tables_reads_risk_estimator_predictions(tmp_path):
             sys.executable,
             "scripts/train_toy_risk_estimator.py",
             "--data",
-            PREFIX_DATASET,
+            prefix_dataset,
             "--out",
             str(pred_path),
         ],

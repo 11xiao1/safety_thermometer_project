@@ -10,9 +10,7 @@
     "max_tool_calls": 3,
     "temperature": 0
   },
-  "failed_tasks": [
-    "user_task_0"
-  ],
+  "failed_tasks": [],
   "merged_prefix": "E:\\safety_thermometer_project\\.pytest_tmp\\test_run_mini_batch_records_ma0\\merged\\prefix.csv",
   "merged_prefix_columns": 0,
   "merged_prefix_rows": 0,
@@ -28,7 +26,10 @@
   "selected_tasks": [
     "user_task_0"
   ],
-  "status": "stopped",
+  "status": "partial",
+  "stopped_tasks": [
+    "user_task_0"
+  ],
   "suite": "workspace",
   "task_results": [
     {

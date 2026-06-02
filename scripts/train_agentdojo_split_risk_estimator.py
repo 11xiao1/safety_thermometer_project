@@ -9,13 +9,14 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.models.thermometer_baseline import (  # noqa: E402
+    EXCLUDED_FEATURE_COLUMNS,
     RULE_BASED_SCORE_COLUMN,
     TARGET_COLUMN,
     select_feature_columns,
@@ -36,6 +37,13 @@ PREDICTION_COLUMNS = [
     "risk_score_rule_based",
     "risk_score_logistic",
     "risk_score_random_forest",
+    "risk_score_hist_gradient_boosting",
+]
+LEAKAGE_SENSITIVE_COLUMNS = [
+    TARGET_COLUMN,
+    "future_severity",
+    "t_risk",
+    "lead_time_if_alert_now",
 ]
 
 
@@ -88,12 +96,12 @@ def _fit_scores(
     train_y: pd.Series,
     val_X: pd.DataFrame,
     random_state: int,
-) -> tuple[np.ndarray, np.ndarray, list[str], str]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], str]:
     warnings = []
     if train_y.nunique() < 2:
         warnings.append("Train split has one class; using constant-prior fallback scores.")
         scores = _constant_scores(train_y, len(val_X))
-        return scores, scores.copy(), warnings, "constant_prior"
+        return scores, scores.copy(), scores.copy(), warnings, "constant_prior"
 
     logistic = LogisticRegression(max_iter=1000, random_state=random_state)
     random_forest = RandomForestClassifier(
@@ -101,11 +109,47 @@ def _fit_scores(
         max_depth=3,
         random_state=random_state,
     )
+    hist_gradient_boosting = HistGradientBoostingClassifier(
+        max_iter=100,
+        max_leaf_nodes=15,
+        random_state=random_state,
+    )
     logistic.fit(train_X, train_y)
     random_forest.fit(train_X, train_y)
+    hist_gradient_boosting.fit(train_X, train_y)
     logistic_scores = np.clip(logistic.predict_proba(val_X)[:, 1] * 100.0, 0.0, 100.0)
     random_forest_scores = np.clip(random_forest.predict_proba(val_X)[:, 1] * 100.0, 0.0, 100.0)
-    return logistic_scores, random_forest_scores, warnings, "trained"
+    hist_gradient_boosting_scores = np.clip(
+        hist_gradient_boosting.predict_proba(val_X)[:, 1] * 100.0,
+        0.0,
+        100.0,
+    )
+    return logistic_scores, random_forest_scores, hist_gradient_boosting_scores, warnings, "trained"
+
+
+def _build_leakage_audit(feature_columns: list[str]) -> dict[str, Any]:
+    excluded_columns_present = sorted(column for column in EXCLUDED_FEATURE_COLUMNS if column in feature_columns)
+    sensitive_column_checks = {
+        column: column not in feature_columns
+        for column in LEAKAGE_SENSITIVE_COLUMNS
+    }
+    risk_score_retained = RULE_BASED_SCORE_COLUMN in feature_columns
+    return {
+        "excluded_label_meta_columns": sorted(EXCLUDED_FEATURE_COLUMNS),
+        "excluded_columns_present_in_features": excluded_columns_present,
+        "future_risk_label_not_used_as_feature": TARGET_COLUMN not in feature_columns,
+        "future_severity_not_used_as_feature": "future_severity" not in feature_columns,
+        "t_risk_not_used_as_feature": "t_risk" not in feature_columns,
+        "lead_time_if_alert_now_not_used_as_feature": "lead_time_if_alert_now" not in feature_columns,
+        "sensitive_column_checks": sensitive_column_checks,
+        "test_split_used": False,
+        "risk_score_retained": risk_score_retained,
+        "risk_score_note": (
+            "risk_score is retained as a prefix-observable rule-based score; "
+            "it must not be computed from future labels."
+        ),
+        "passed": not excluded_columns_present and all(sensitive_column_checks.values()),
+    }
 
 
 def train_agentdojo_split_risk_estimator(
@@ -141,7 +185,7 @@ def train_agentdojo_split_risk_estimator(
     val_X = val_df[feature_columns].fillna(0.0)
     val_y = val_df[TARGET_COLUMN]
 
-    logistic_scores, random_forest_scores, fit_warnings, fit_mode = _fit_scores(
+    logistic_scores, random_forest_scores, hist_gradient_boosting_scores, fit_warnings, fit_mode = _fit_scores(
         train_X,
         train_y,
         val_X,
@@ -149,6 +193,10 @@ def train_agentdojo_split_risk_estimator(
     )
     logistic_metrics, logistic_warnings = _validation_metrics(val_y, logistic_scores)
     random_forest_metrics, random_forest_warnings = _validation_metrics(val_y, random_forest_scores)
+    hist_gradient_boosting_metrics, hist_gradient_boosting_warnings = _validation_metrics(
+        val_y,
+        hist_gradient_boosting_scores,
+    )
 
     predictions = pd.DataFrame({
         "episode_id": val_df["episode_id"],
@@ -159,11 +207,17 @@ def train_agentdojo_split_risk_estimator(
         "risk_score_rule_based": val_df[RULE_BASED_SCORE_COLUMN].astype(float),
         "risk_score_logistic": logistic_scores,
         "risk_score_random_forest": random_forest_scores,
+        "risk_score_hist_gradient_boosting": hist_gradient_boosting_scores,
     })
 
     warnings = fit_warnings + logistic_warnings + [
         warning for warning in random_forest_warnings if warning not in logistic_warnings
+    ] + [
+        warning
+        for warning in hist_gradient_boosting_warnings
+        if warning not in logistic_warnings and warning not in random_forest_warnings
     ]
+    leakage_audit = _build_leakage_audit(feature_columns)
     metrics: dict[str, Any] = {
         "target": TARGET_COLUMN,
         "diagnostic_only": ["oracle_violation"],
@@ -179,8 +233,10 @@ def train_agentdojo_split_risk_estimator(
         "val_label_counts": _label_counts(val_y),
         "manifest_episode_counts": manifest.get("episode_counts", {}),
         "features": feature_columns,
+        "leakage_audit": leakage_audit,
         "logistic": logistic_metrics,
         "random_forest": random_forest_metrics,
+        "hist_gradient_boosting": hist_gradient_boosting_metrics,
         "warnings": warnings,
         "limitations": [
             "Mini-batch validation only.",

@@ -31,6 +31,7 @@
     "user_task_1"
   ],
   "status": "ok",
+  "stopped_tasks": [],
   "suite": "workspace",
   "task_results": [
     {
