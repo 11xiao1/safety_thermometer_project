@@ -1,0 +1,35 @@
+{
+  "brier_score_isotonic": null,
+  "brier_score_platt": 0.009999999999999998,
+  "brier_score_raw": 0.009999999999999998,
+  "calibration_methods_used": [
+    "identity"
+  ],
+  "diagnostic_only": [
+    "oracle_violation"
+  ],
+  "ece_isotonic": null,
+  "ece_platt": 0.1,
+  "ece_raw": 0.1,
+  "input_metrics": "E:\\safety_thermometer_project\\.pytest_tmp\\test_agentdojo_split_calibrati2\\metrics_in.json",
+  "input_predictions": "E:\\safety_thermometer_project\\.pytest_tmp\\test_agentdojo_split_calibrati2\\predictions.csv",
+  "label_counts": {
+    "0": 4
+  },
+  "limitation": "Validation-only calibration sanity check, not a final benchmark result.",
+  "mean_thermometer_score_risky": null,
+  "mean_thermometer_score_safe": 10.0,
+  "policy_counts": {
+    "continue": 4
+  },
+  "prior_leakage_audit_passed": true,
+  "row_count": 4,
+  "score_column": "risk_score_hist_gradient_boosting",
+  "selected_calibration_method": "identity",
+  "target": "future_risk_label",
+  "test_split_used": false,
+  "warnings": [
+    "Platt scaling skipped because validation labels have one class.",
+    "Isotonic calibration skipped because validation labels have one class."
+  ]
+}

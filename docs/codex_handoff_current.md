@@ -64,65 +64,77 @@ workspace
 
 ## Current exact next task
 
-Add a stronger tabular Risk Estimator baseline and audit feature leakage before calibration.
+Generate validation-only calibrated Table 3 / Table 4 prototypes for the AgentDojo multi-suite calibration sanity check.
 
 Primary goal:
-Extend the AgentDojo split Risk Estimator baseline with one stronger tabular model, while checking that no feature leaks future labels or test information.
-
-Context:
-The current multi-suite AgentDojo validation metrics improved:
-- logistic AUROC around 0.805
-- logistic AUPRC around 0.771
-- random forest AUROC around 0.764
-- validation has both safe and risky labels
-- test_split_used is false
-- no calibration has been fit yet
+Use validation-only calibrated Thermometer Score outputs to generate CSV tables summarizing calibrated score performance and policy distribution. These are sanity-check tables only, not final benchmark results.
 
 Primary files:
-- scripts/train_agentdojo_split_risk_estimator.py
-- tests/test_agentdojo_split_training.py
+- scripts/make_agentdojo_calibrated_tables.py
+- tests/test_agentdojo_calibrated_tables.py
 
 Inputs:
-- outputs/agentdojo_multisuite_combined/splits/agentdojo_train.csv
-- outputs/agentdojo_multisuite_combined/splits/agentdojo_val.csv
-- outputs/agentdojo_multisuite_combined/splits/split_manifest.json
-
-Outputs:
-- outputs/agentdojo_multisuite_combined/agentdojo_split_risk_estimator_predictions.csv
+- outputs/agentdojo_multisuite_combined/agentdojo_thermometer_scores_val.csv
+- outputs/agentdojo_multisuite_combined/agentdojo_calibration_metrics_val.json
 - outputs/agentdojo_multisuite_combined/agentdojo_split_risk_estimator_metrics.json
 
+Outputs:
+- outputs/agentdojo_multisuite_combined/table3_agentdojo_validation_calibrated.csv
+- outputs/agentdojo_multisuite_combined/table4_agentdojo_validation_policy.csv
+
+Table 3 should include:
+- score_name
+- split
+- row_count
+- label_counts
+- AUROC if valid
+- AUPRC if valid
+- F1@50
+- Brier score if available
+- ECE if available
+- mean_score_safe
+- mean_score_risky
+- calibration_method
+- test_split_used
+- limitation
+
+Rows should include at least:
+- raw_hist_gradient_boosting
+- calibrated_platt
+- calibrated_isotonic
+- selected_thermometer_score
+
+Table 4 should include:
+- split
+- row_count
+- policy counts:
+  - continue
+  - watch
+  - verify
+  - alert
+  - block
+- alert_or_block_count
+- alert_or_block_rate
+- risky_prefixes
+- safe_prefixes
+- risky_alert_or_block_count
+- safe_alert_or_block_count
+- false_alert_proxy
+- missed_risky_proxy
+- test_split_used
+- limitation
+
 Required behavior:
-- Keep existing logistic regression baseline.
-- Keep existing random forest baseline.
-- Add HistGradientBoostingClassifier as a stronger tabular baseline.
-- Train only on train split.
-- Evaluate only on validation split.
+- Use validation outputs only.
 - Do not read or use test split.
-- Target remains future_risk_label.
-- oracle_violation remains diagnostic only, not target.
-- Add a leakage audit section to metrics JSON:
-  - confirm excluded label/meta columns
-  - confirm future_risk_label is not used as feature
-  - confirm future_severity is not used as feature
-  - confirm t_risk is not used as feature
-  - confirm lead_time_if_alert_now is not used as feature
-  - confirm test split is not used
-- Keep risk_score only if it is computed from prefix-observable evidence and not from future labels. If uncertain, add a warning.
-- Report metrics for:
-  - logistic
-  - random_forest
-  - hist_gradient_boosting
-- Metrics:
-  - AUROC
-  - AUPRC
-  - F1@50
-  - mean_score_safe
-  - mean_score_risky
-- Do not fit calibration yet.
 - Do not call provider.
 - Do not run AgentDojo.
-- Do not modify replay.py unless strictly necessary.
+- Do not fit new calibration.
+- Do not modify Risk Estimator training.
+- Do not modify replay.py.
 - Do not add RL.
+- Keep oracle_violation diagnostic only.
+- Clearly mark outputs as validation-only sanity-check results, not final benchmark results.
 - Do not generate markdown reports.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
@@ -130,6 +142,7 @@ Required behavior:
 After finishing:
 - Report modified files.
 - Report tests added or updated.
-- Report exact command to run training.
+- Report exact table-generation command.
 - Report exact pytest command for the user.
 - Provide suggested next Current exact next task.
+

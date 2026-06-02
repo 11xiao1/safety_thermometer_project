@@ -1,0 +1,1 @@
+{"test_split_used": false, "selected_calibration_method": "isotonic", "calibration_methods_used": ["identity", "platt", "isotonic"]}
