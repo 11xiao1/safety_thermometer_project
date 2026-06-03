@@ -64,63 +64,120 @@ workspace
 
 ## Current exact next task
 
-Create an AgentDojo multi-suite expansion plan and command generator without calling providers.
+Prepare final recovery round2 commands and audit utility=false trace quality before full AgentDojo merge.
 
 Primary goal:
-Plan the next data expansion phase for Safety Thermometer by identifying remaining AgentDojo suite/task ranges and generating guarded dry-run/real-run commands. Do not call providers and do not run AgentDojo.
+Before merging expansion outputs into a full AgentDojo dataset, handle the remaining stopped tasks and audit whether completed utility=false tasks are usable trajectories or low-quality failures.
+
+Current expansion status after recovery round1:
+- selected tasks: 47
+- effective completed tasks: 43
+- remaining stopped tasks: 4
+- failed tasks: 0
+- completed utility=true: 24
+- completed utility=false: 19
+- utility=false rate: 44.19%
+- completed security=true: all completed tasks
+- completed security=false: 0
+
+Remaining stopped tasks:
+- slack: user_task_10,user_task_14
+- travel: user_task_15,user_task_19
 
 Primary files:
-- scripts/plan_agentdojo_multisuite_expansion.py
-- tests/test_plan_agentdojo_multisuite_expansion.py
+- scripts/audit_agentdojo_expansion_outcomes.py
+- scripts/audit_agentdojo_utility_false_quality.py
+- tests/test_audit_agentdojo_expansion_outcomes.py
+- tests/test_audit_agentdojo_utility_false_quality.py
 
 Inputs:
-- existing output directories under outputs/agentdojo_mini_batch*
-- outputs/agentdojo_trace_provenance_audit.json if useful
-- available AgentDojo suites:
-  - workspace
-  - slack
-  - travel
-  - banking
+- outputs/agentdojo_expansion/*/run_summary.json
+- outputs/agentdojo_expansion_recovery/*/run_summary.json
+- outputs/agentdojo_expansion/*/traces/
+- outputs/agentdojo_expansion_recovery/*/traces/
+- outputs/agentdojo_expansion/*/prefix/
+- outputs/agentdojo_expansion_recovery/*/prefix/
+- outputs/agentdojo_expansion_outcome_audit.json
+- outputs/agentdojo_expansion_recovery_commands.txt
 
-Required behavior:
-- Inspect existing run_summary.json files and trace directories to determine already collected tasks.
-- Summarize completed, stopped, and missing tasks per suite.
-- Do not assume workspace has more than user_task_39.
-- Generate a proposed expansion plan for:
-  - remaining slack tasks
-  - travel tasks
-  - banking tasks
-- Prefer suite diversity over rerunning already completed tasks.
-- Use existing guarded run settings:
+Outputs:
+- outputs/agentdojo_expansion_outcome_audit.json
+- outputs/agentdojo_expansion_outcome_audit.csv
+- outputs/agentdojo_expansion_recovery_commands.txt
+- outputs/agentdojo_utility_false_quality_audit.json
+- outputs/agentdojo_utility_false_quality_audit.csv
+
+Required recovery command behavior:
+- Keep only the remaining stopped tasks:
+  - slack: user_task_10,user_task_14
+  - travel: user_task_15,user_task_19
+- Use separate recovery output dirs:
+  - outputs/agentdojo_expansion_recovery/slack_recovery_round2/
+  - outputs/agentdojo_expansion_recovery/travel_recovery_round2/
+- Use guarded settings:
   - provider openai-compatible
   - model gpt-3.5-turbo
-  - max_steps 6
-  - max_tool_calls 6
-  - max_output_tokens 512
-  - temperature 0
+  - max_steps=15
+  - max_tool_calls=15
+  - max_output_tokens=512
+  - temperature=0
   - cost_guard enabled
-- Output:
-  - outputs/agentdojo_multisuite_expansion_plan.json
-  - outputs/agentdojo_multisuite_expansion_commands.txt
+- Generate both dry-run and real-run commands.
+- Do not execute commands.
 
-Commands should include:
-- dry-run command
-- real-run command
-- separate output directories per suite/round
-- no command should run automatically
+Required utility=false audit behavior:
+- Identify all completed tasks with utility=false across expansion and recovery outputs.
+- For each utility=false completed task, report:
+  - suite
+  - task_id
+  - batch
+  - episode_id
+  - utility
+  - security
+  - trace path
+  - prefix path
+  - trace event count
+  - prefix row count
+  - has_final_event
+  - has_pre_step
+  - has_post_step
+  - future_risk_label counts if prefix exists
+  - oracle_violation counts if prefix exists
+  - stop_reason if any
+  - quality_status
+- quality_status should be one of:
+  - usable_completed_trace
+  - suspicious_short_trace
+  - missing_prefix
+  - missing_final_event
+  - missing_trace
+  - stopped_or_failed_not_completed
+- Aggregate:
+  - utility_false_total
+  - usable_utility_false_count
+  - suspicious_utility_false_count
+  - missing_prefix_count
+  - missing_final_event_count
+  - per-suite utility_false counts
+- Do not delete or exclude anything yet.
+- Add merge guidance:
+  - utility=false trajectories should be retained only if quality_status is usable_completed_trace
+  - final evaluation should report all / utility=true / utility=false slices
 
 Rules:
 - Do not call provider.
 - Do not run AgentDojo.
 - Do not train Risk Estimator.
 - Do not fit calibration.
+- Do not merge datasets.
 - Do not use test split.
 - Do not add RL.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
 
 After finishing:
-- Report generated plan path.
-- Report proposed suite/task batches.
+- Report updated recovery command path.
+- Report utility=false audit output paths.
+- Report utility_false_total and quality_status counts.
 - Report exact pytest command.
 - Suggest next Current exact next task.
