@@ -1,0 +1,90 @@
+{
+  "episode_counts": {
+    "test": 0,
+    "train": 1,
+    "val": 1
+  },
+  "episode_ids": {
+    "test": [],
+    "train": [
+      "workspace:user_task_0:none:none"
+    ],
+    "val": [
+      "workspace:user_task_1:none:none"
+    ]
+  },
+  "episode_overlap_check": {
+    "overlaps": {
+      "train_test": [],
+      "train_val": [],
+      "val_test": []
+    },
+    "passed": true
+  },
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\heuristic_variance\\agentdojo_full_heuristic_variance_disagreement_prefix_dataset.csv",
+  "label_counts": {
+    "test": {},
+    "train": {
+      "1": 1
+    },
+    "val": {
+      "0": 1
+    }
+  },
+  "method_notes": {
+    "guardrail": "Do not fit calibration on test data and do not randomly split prefix rows.",
+    "test": "Test split is reserved for final Table 3 / Table 4 reporting.",
+    "train": "Train split is reserved for future Risk Estimator training.",
+    "val": "Validation split is reserved for future calibration and threshold selection."
+  },
+  "oracle_violation_counts": {
+    "test": {},
+    "train": {
+      "0": 1
+    },
+    "val": {
+      "0": 1
+    }
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\heuristic_variance\\splits\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\heuristic_variance\\splits\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\heuristic_variance\\splits\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\heuristic_variance\\splits\\agentdojo_val.csv"
+  },
+  "prior_manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\prior_manifest.json",
+  "row_counts": {
+    "test": 0,
+    "train": 1,
+    "val": 1
+  },
+  "seed": 42,
+  "semantic_duplicate_rows": 0,
+  "source_batch_counts": {
+    "test": {},
+    "train": {
+      "workspace_round1": 1
+    },
+    "val": {
+      "workspace_round1": 1
+    }
+  },
+  "source_suite_counts": {
+    "test": {},
+    "train": {
+      "workspace": 1
+    },
+    "val": {
+      "workspace": 1
+    }
+  },
+  "split_ratios": {
+    "test": 0.2,
+    "train": 0.6,
+    "val": 0.2
+  },
+  "warnings": [
+    "Reused episode split assignment from E:\\safety_thermometer_project\\.pytest_tmp\\test_regenerate_variance_disag0\\prior_manifest.json.",
+    "Validation split has one class; validation metrics may be limited."
+  ]
+}

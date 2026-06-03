@@ -1,0 +1,31 @@
+{
+  "batches": [
+    {
+      "batch": "travel_expansion_round1",
+      "source_group": "expansion",
+      "summary_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\expansion\\run_summary.json",
+      "suite": "travel",
+      "selected_tasks": [
+        "user_task_1",
+        "user_task_2"
+      ]
+    }
+  ],
+  "recovery_batches": [
+    {
+      "batch": "travel_recovery_round1",
+      "source_group": "recovery",
+      "summary_path": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\recovery\\run_summary.json",
+      "suite": "travel",
+      "selected_tasks": [
+        "user_task_2",
+        "user_task_3"
+      ]
+    }
+  ],
+  "effective_after_recovery": {
+    "budget_limited_tasks": [
+      "travel:user_task_3"
+    ]
+  }
+}

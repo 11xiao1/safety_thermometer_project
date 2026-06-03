@@ -1,6 +1,7 @@
 import pandas as pd
 
 from src.features.extractor import FEATURE_COLUMNS
+from src.features.disagreement import VARIANCE_CUMULATIVE_COLUMNS, VARIANCE_DISAGREEMENT_COLUMNS
 from src.monitor.replay import make_prefix_dataset
 from src.monitor.schema import TraceEvent
 
@@ -17,6 +18,7 @@ CUMULATIVE_COLUMNS = [
     "confirmation_seen_so_far",
     "max_risk_score_so_far",
     "max_disagreement_score_so_far",
+    *VARIANCE_CUMULATIVE_COLUMNS,
 ]
 DISAGREEMENT_COLUMNS = [
     "f_intent_tool_mismatch",
@@ -33,6 +35,7 @@ REQUIRED_COLUMNS = [
     "hook_type",
     *FEATURE_COLUMNS,
     *DISAGREEMENT_COLUMNS,
+    *VARIANCE_DISAGREEMENT_COLUMNS,
     *CUMULATIVE_COLUMNS,
     "oracle_violation",
     "oracle_rules",

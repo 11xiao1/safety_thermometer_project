@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+from src.features.disagreement import stream_q_features
 from src.monitor.logger import load_trace_events, group_by_episode
 from src.monitor.schema import TraceEvent, trace_event_sort_key
 from src.features.extractor import extract_step_features
@@ -172,11 +173,19 @@ def make_prefix_dataset(trace_path: str) -> pd.DataFrame:
         smoothed = 0.0
         max_risk_score_so_far = 0.0
         max_disagreement_score_so_far = 0.0
+        cumulative_stream_variance = 0.0
+        max_stream_variance_so_far = 0.0
+        max_self_check_gap_so_far = 0.0
+        max_self_check_underreport_gap_so_far = 0.0
+        max_plan_action_gap_so_far = 0.0
+        max_intent_action_gap_so_far = 0.0
+        max_observation_action_gap_so_far = 0.0
         prior_observation_error = False
         for idx, event in enumerate(eps_sorted):
             prefix = eps_sorted[: idx + 1]
             feat = extract_step_features(event)
             disagreement = _disagreement_features(event, prior_observation_error)
+            variance_disagreement = stream_q_features(event)
             cumulative_state_modifying_count += int(feat["f_state_modifying"])
             cumulative_irreversible_count += int(feat["f_irreversible"])
             cumulative_sensitive_access_count += int(feat["f_sensitive_access"])
@@ -206,6 +215,19 @@ def make_prefix_dataset(trace_path: str) -> pd.DataFrame:
             smoothed = monotone_smooth(smoothed, raw_score)
             max_risk_score_so_far = max(max_risk_score_so_far, smoothed)
             max_disagreement_score_so_far = max(max_disagreement_score_so_far, float(disagreement["disagreement_score"]))
+            cumulative_stream_variance += float(variance_disagreement["d_stream_variance"])
+            max_stream_variance_so_far = max(max_stream_variance_so_far, float(variance_disagreement["d_stream_variance"]))
+            max_self_check_gap_so_far = max(max_self_check_gap_so_far, float(variance_disagreement["d_self_check_gap"]))
+            max_self_check_underreport_gap_so_far = max(
+                max_self_check_underreport_gap_so_far,
+                float(variance_disagreement["d_self_check_underreport_gap"]),
+            )
+            max_plan_action_gap_so_far = max(max_plan_action_gap_so_far, float(variance_disagreement["d_plan_action_gap"]))
+            max_intent_action_gap_so_far = max(max_intent_action_gap_so_far, float(variance_disagreement["d_intent_action_gap"]))
+            max_observation_action_gap_so_far = max(
+                max_observation_action_gap_so_far,
+                float(variance_disagreement["d_observation_action_gap"]),
+            )
             future_risk = int(any(risk_step >= event.step_id for risk_step in risk_steps))
             future_severity = _future_severity(eps_sorted, event.step_id) if future_risk else 0.0
             lead_time = None if t_risk is None else t_risk - event.step_id
@@ -221,6 +243,14 @@ def make_prefix_dataset(trace_path: str) -> pd.DataFrame:
                 "confirmation_seen_so_far": confirmation_seen_so_far,
                 "max_risk_score_so_far": max_risk_score_so_far,
                 "max_disagreement_score_so_far": max_disagreement_score_so_far,
+                **variance_disagreement,
+                "cumulative_stream_variance": cumulative_stream_variance,
+                "max_stream_variance_so_far": max_stream_variance_so_far,
+                "max_self_check_gap_so_far": max_self_check_gap_so_far,
+                "max_self_check_underreport_gap_so_far": max_self_check_underreport_gap_so_far,
+                "max_plan_action_gap_so_far": max_plan_action_gap_so_far,
+                "max_intent_action_gap_so_far": max_intent_action_gap_so_far,
+                "max_observation_action_gap_so_far": max_observation_action_gap_so_far,
                 **{column: value for column, value in disagreement.items() if column != "disagreement_score"},
                 "oracle_violation": oracle_violation,
                 "oracle_rules": ";".join(r.rule_id for r in oracle_results if r.violation),

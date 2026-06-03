@@ -64,120 +64,110 @@ workspace
 
 ## Current exact next task
 
-Prepare final recovery round2 commands and audit utility=false trace quality before full AgentDojo merge.
+Create the final Safety Thermometer experiment protocol and method-freeze checklist before publication-scale experiments.
 
 Primary goal:
-Before merging expansion outputs into a full AgentDojo dataset, handle the remaining stopped tasks and audit whether completed utility=false tasks are usable trajectories or low-quality failures.
-
-Current expansion status after recovery round1:
-- selected tasks: 47
-- effective completed tasks: 43
-- remaining stopped tasks: 4
-- failed tasks: 0
-- completed utility=true: 24
-- completed utility=false: 19
-- utility=false rate: 44.19%
-- completed security=true: all completed tasks
-- completed security=false: 0
-
-Remaining stopped tasks:
-- slack: user_task_10,user_task_14
-- travel: user_task_15,user_task_19
-
-Primary files:
-- scripts/audit_agentdojo_expansion_outcomes.py
-- scripts/audit_agentdojo_utility_false_quality.py
-- tests/test_audit_agentdojo_expansion_outcomes.py
-- tests/test_audit_agentdojo_utility_false_quality.py
+Align the implementation plan with the manuscript requirements and freeze the final experimental protocol before running new final experiments. Do not train models, do not call providers, do not run AgentDojo, and do not use the test split.
 
 Inputs:
-- outputs/agentdojo_expansion/*/run_summary.json
-- outputs/agentdojo_expansion_recovery/*/run_summary.json
-- outputs/agentdojo_expansion/*/traces/
-- outputs/agentdojo_expansion_recovery/*/traces/
-- outputs/agentdojo_expansion/*/prefix/
-- outputs/agentdojo_expansion_recovery/*/prefix/
-- outputs/agentdojo_expansion_outcome_audit.json
-- outputs/agentdojo_expansion_recovery_commands.txt
+- paper manuscript: Safety Thermometer
+- current AgentDojo full v2 outputs
+- current heuristic and variance disagreement implementations
+- docs/codex_handoff_current.md
 
 Outputs:
-- outputs/agentdojo_expansion_outcome_audit.json
-- outputs/agentdojo_expansion_outcome_audit.csv
-- outputs/agentdojo_expansion_recovery_commands.txt
-- outputs/agentdojo_utility_false_quality_audit.json
-- outputs/agentdojo_utility_false_quality_audit.csv
+- docs/final_safety_thermometer_experiment_protocol.md
+- outputs/final_method_gap_checklist.json
 
-Required recovery command behavior:
-- Keep only the remaining stopped tasks:
-  - slack: user_task_10,user_task_14
-  - travel: user_task_15,user_task_19
-- Use separate recovery output dirs:
-  - outputs/agentdojo_expansion_recovery/slack_recovery_round2/
-  - outputs/agentdojo_expansion_recovery/travel_recovery_round2/
-- Use guarded settings:
-  - provider openai-compatible
-  - model gpt-3.5-turbo
-  - max_steps=15
-  - max_tool_calls=15
-  - max_output_tokens=512
-  - temperature=0
-  - cost_guard enabled
-- Generate both dry-run and real-run commands.
-- Do not execute commands.
+Required sections:
+1. Final frozen architecture:
+   - Evidence Streams
+   - LLM-as-judge labels
+   - Learned Stream q Estimator
+   - Learned-q Variance Disagreement
+   - Temporal Risk Accumulator
+   - Severity-weighted Risk Estimator
+   - Severity-weighted Calibration
+   - Runtime Policy
 
-Required utility=false audit behavior:
-- Identify all completed tasks with utility=false across expansion and recovery outputs.
-- For each utility=false completed task, report:
-  - suite
-  - task_id
-  - batch
-  - episode_id
-  - utility
-  - security
-  - trace path
-  - prefix path
-  - trace event count
-  - prefix row count
-  - has_final_event
-  - has_pre_step
-  - has_post_step
-  - future_risk_label counts if prefix exists
-  - oracle_violation counts if prefix exists
-  - stop_reason if any
-  - quality_status
-- quality_status should be one of:
-  - usable_completed_trace
-  - suspicious_short_trace
-  - missing_prefix
-  - missing_final_event
-  - missing_trace
-  - stopped_or_failed_not_completed
-- Aggregate:
-  - utility_false_total
-  - usable_utility_false_count
-  - suspicious_utility_false_count
-  - missing_prefix_count
-  - missing_final_event_count
-  - per-suite utility_false counts
-- Do not delete or exclude anything yet.
-- Add merge guidance:
-  - utility=false trajectories should be retained only if quality_status is usable_completed_trace
-  - final evaluation should report all / utility=true / utility=false slices
+2. Benchmark protocol:
+   - AgentHazard as primary benchmark
+   - AgentDojo as secondary benchmark
+   - unified trace schema
+   - train/validation/test split rules
+
+3. Label protocol:
+   - binary_risk_label
+   - severity_score
+   - risk_category
+   - deception_indicator
+   - surface_benign_indicator
+   - first_risk_step
+   - rationale
+   - propagation to prefix-level future_risk_label, future_severity, severity_weighted_future_risk
+
+4. Stream q estimator protocol:
+   - stream-level dataset construction
+   - train-only fitting
+   - train K-fold out-of-fold q
+   - validation/test q generated by train-full stream q estimator
+   - no test leakage
+
+5. Disagreement protocol:
+   - no_disagreement
+   - learned_q_variance_disagreement
+   - optional heuristic_disagreement
+   - D_t, D_self, D_act definitions
+
+6. Temporal accumulator protocol:
+   - T0 no temporal memory
+   - T1 lightweight cumulative/max/monotone accumulator
+   - T2 learned temporal model if implemented
+
+7. Calibration protocol:
+   - target severity_weighted_future_risk
+   - severity-weighted ECE
+   - reliability buckets
+   - threshold selection on validation only
+
+8. Baseline matrix:
+   - text-only final-output classifier
+   - single-signal monitor
+   - single-step fusion without temporal memory
+   - w/o disagreement
+   - w/o temporal memory
+   - w/o calibration
+   - full Safety Thermometer
+
+9. Slice evaluations:
+   - all
+   - utility=true / utility=false / utility=unknown
+   - deceptive / surface-benign risky
+   - self-check-low external-high
+   - suite / benchmark
+
+10. Final reporting:
+   - Table 3 early-warning metrics
+   - Table 4 runtime policy outcomes
+   - ablation table
+   - slice table
+   - latency
+
+11. Method-freeze rules:
+   - validation used for model/calibration/threshold selection
+   - test used once only after method freeze
+   - no feature/model/threshold changes after final validation selection
 
 Rules:
+- Do not train.
+- Do not calibrate.
 - Do not call provider.
 - Do not run AgentDojo.
-- Do not train Risk Estimator.
-- Do not fit calibration.
-- Do not merge datasets.
 - Do not use test split.
-- Do not add RL.
 - Do not modify docs/codex_handoff_current.md.
-- Do not run pytest; the user will run tests manually.
+- Do not run pytest.
 
 After finishing:
-- Report updated recovery command path.
-- Report utility=false audit output paths.
-- Report utility_false_total and quality_status counts.
-- Report exact pytest command.
+- Report output paths.
+- Report remaining must-fix gaps.
 - Suggest next Current exact next task.

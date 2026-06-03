@@ -1,0 +1,1 @@
+{"score_column": "risk_score_hist_gradient_boosting", "selected_calibration_method": "isotonic", "brier_score_isotonic": 0.1, "ece_isotonic": 0.02, "test_split_used": false, "warnings": []}

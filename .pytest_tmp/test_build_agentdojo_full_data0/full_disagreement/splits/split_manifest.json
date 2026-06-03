@@ -1,0 +1,134 @@
+{
+  "episode_counts": {
+    "test": 1,
+    "train": 2,
+    "val": 1
+  },
+  "episode_ids": {
+    "test": [
+      "slack:user_task_0:none:none"
+    ],
+    "train": [
+      "travel:user_task_2:none:none",
+      "travel:user_task_1:none:none"
+    ],
+    "val": [
+      "workspace:user_task_0:none:none"
+    ]
+  },
+  "episode_overlap_check": {
+    "overlaps": {
+      "train_test": [],
+      "train_val": [],
+      "val_test": []
+    },
+    "passed": true
+  },
+  "episode_source_batch_conflicts": {},
+  "excluded_budget_limited_tasks": [
+    "travel:user_task_3"
+  ],
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full_disagreement\\agentdojo_full_disagreement_prefix_dataset.csv",
+  "label_counts": {
+    "test": {
+      "1": 2
+    },
+    "train": {
+      "0": 2,
+      "1": 2
+    },
+    "val": {
+      "0": 2
+    }
+  },
+  "method_notes": {
+    "guardrail": "Do not fit calibration on test data and do not randomly split prefix rows.",
+    "test": "Test split is reserved for final Table 3 / Table 4 reporting.",
+    "train": "Train split is reserved for future Risk Estimator training.",
+    "val": "Validation split is reserved for future calibration and threshold selection."
+  },
+  "oracle_violation_counts": {
+    "test": {
+      "0": 2
+    },
+    "train": {
+      "0": 4
+    },
+    "val": {
+      "0": 2
+    }
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full_disagreement\\splits\\split_manifest.json",
+    "test": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full_disagreement\\splits\\agentdojo_test.csv",
+    "train": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full_disagreement\\splits\\agentdojo_train.csv",
+    "val": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full_disagreement\\splits\\agentdojo_val.csv"
+  },
+  "prior_manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full\\splits\\split_manifest.json",
+  "row_counts": {
+    "test": 2,
+    "train": 4,
+    "val": 2
+  },
+  "security_counts": {
+    "test": {
+      "": 2
+    },
+    "train": {
+      "True": 4
+    },
+    "val": {
+      "": 2
+    }
+  },
+  "seed": 42,
+  "semantic_duplicate_row_count_after_deduplication": 0,
+  "semantic_duplicate_row_count_before_deduplication": 0,
+  "source_batch_counts": {
+    "test": {
+      "base_batch": 2
+    },
+    "train": {
+      "travel_expansion_round1": 2,
+      "travel_recovery_round1": 2
+    },
+    "val": {
+      "base_batch": 2
+    }
+  },
+  "source_suite_counts": {
+    "test": {
+      "workspace": 2
+    },
+    "train": {
+      "travel": 4
+    },
+    "val": {
+      "workspace": 2
+    }
+  },
+  "split_ratios": {
+    "test": 0.2,
+    "train": 0.6,
+    "val": 0.2
+  },
+  "total_included_episodes": 4,
+  "total_included_rows": 8,
+  "utility_counts": {
+    "test": {
+      "": 2
+    },
+    "train": {
+      "False": 2,
+      "True": 2
+    },
+    "val": {
+      "": 2
+    }
+  },
+  "warnings": [
+    "Reused episode split assignment from E:\\safety_thermometer_project\\.pytest_tmp\\test_build_agentdojo_full_data0\\full\\splits\\split_manifest.json.",
+    "Validation split has one class; validation metrics may be limited.",
+    "Test split has one class; test metrics may be limited."
+  ]
+}

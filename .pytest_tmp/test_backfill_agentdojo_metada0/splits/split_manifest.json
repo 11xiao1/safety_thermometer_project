@@ -1,0 +1,99 @@
+{
+  "episode_ids": {
+    "test": [
+      "suite:user_task_2:none:none"
+    ],
+    "train": [
+      "suite:user_task_0:none:none"
+    ],
+    "val": [
+      "suite:user_task_1:none:none"
+    ]
+  },
+  "episode_overlap_check": {
+    "overlaps": {
+      "train_test": [],
+      "train_val": [],
+      "val_test": []
+    },
+    "passed": true
+  },
+  "input": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada0\\full.csv",
+  "label_counts": {
+    "test": {
+      "0": 1
+    },
+    "train": {
+      "0": 1
+    },
+    "val": {
+      "1": 1
+    }
+  },
+  "metadata_backfill": {
+    "conflict_episodes": 0,
+    "episodes_backfilled": 2,
+    "metadata_source_coverage_by_batch": {
+      "batch": 3
+    },
+    "remaining_unknown_episodes": 1,
+    "report_csv": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada0\\report.csv",
+    "report_json": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada0\\report.json",
+    "rows_backfilled": 4
+  },
+  "outputs": {
+    "manifest": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada0\\splits\\split_manifest.json"
+  },
+  "row_counts": {
+    "test": 1,
+    "train": 1,
+    "val": 1
+  },
+  "security_counts": {
+    "test": {
+      "conflict": 0,
+      "false": 0,
+      "true": 0,
+      "unknown_no_summary": 0,
+      "unknown_not_evaluated": 1
+    },
+    "train": {
+      "conflict": 0,
+      "false": 0,
+      "true": 1,
+      "unknown_no_summary": 0,
+      "unknown_not_evaluated": 0
+    },
+    "val": {
+      "conflict": 0,
+      "false": 0,
+      "true": 1,
+      "unknown_no_summary": 0,
+      "unknown_not_evaluated": 0
+    }
+  },
+  "utility_counts": {
+    "test": {
+      "conflict": 0,
+      "false": 0,
+      "true": 0,
+      "unknown_no_summary": 0,
+      "unknown_not_evaluated": 1
+    },
+    "train": {
+      "conflict": 0,
+      "false": 0,
+      "true": 1,
+      "unknown_no_summary": 0,
+      "unknown_not_evaluated": 0
+    },
+    "val": {
+      "conflict": 0,
+      "false": 1,
+      "true": 0,
+      "unknown_no_summary": 0,
+      "unknown_not_evaluated": 0
+    }
+  },
+  "warnings": []
+}

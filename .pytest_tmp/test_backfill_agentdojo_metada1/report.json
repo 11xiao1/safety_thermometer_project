@@ -1,0 +1,84 @@
+{
+  "datasets": {
+    "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\full.csv": {
+      "episodes_backfilled": 0,
+      "rows": 3,
+      "rows_backfilled": 0
+    }
+  },
+  "episode_status_counts": {
+    "conflict": 1,
+    "unknown_no_summary": 2
+  },
+  "episodes": [
+    {
+      "conflict_details": {
+        "security_values": [
+          "True"
+        ],
+        "utility_values": [
+          "False",
+          "True"
+        ]
+      },
+      "episode_id": "suite:user_task_0:none:none",
+      "metadata_source_batch": "a;b",
+      "metadata_status": "conflict",
+      "security": null,
+      "source_count": 2,
+      "utility": null
+    },
+    {
+      "conflict_details": {},
+      "episode_id": "suite:user_task_1:none:none",
+      "metadata_source_batch": "",
+      "metadata_status": "unknown_no_summary",
+      "security": null,
+      "source_count": 0,
+      "utility": null
+    },
+    {
+      "conflict_details": {},
+      "episode_id": "suite:user_task_2:none:none",
+      "metadata_source_batch": "",
+      "metadata_status": "unknown_no_summary",
+      "security": null,
+      "source_count": 0,
+      "utility": null
+    }
+  ],
+  "inputs": {
+    "audit": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\missing_audit.json",
+    "datasets": [
+      "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\full.csv"
+    ],
+    "summary_paths": [
+      "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\a\\run_summary.json",
+      "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\b\\run_summary.json"
+    ]
+  },
+  "metadata_source_coverage_by_batch": {
+    "a": 1,
+    "b": 1
+  },
+  "outputs": {
+    "csv": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\report.csv",
+    "json": "E:\\safety_thermometer_project\\.pytest_tmp\\test_backfill_agentdojo_metada1\\report.json"
+  },
+  "status": "ok",
+  "totals": {
+    "budget_limited_tasks": [],
+    "conflict_episodes": 1,
+    "episode_count": 3,
+    "episodes_backfilled": 0,
+    "remaining_unknown_episodes": 2,
+    "rows_backfilled": 0
+  },
+  "updated_manifests": {},
+  "validation": {
+    "row_counts_unchanged": true,
+    "train_val_test_assignment_unchanged": true
+  },
+  "will_call_provider": false,
+  "will_run_agentdojo": false
+}

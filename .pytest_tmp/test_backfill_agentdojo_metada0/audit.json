@@ -1,0 +1,7 @@
+{
+  "effective_after_recovery": {
+    "budget_limited_tasks": [
+      "suite:user_task_2"
+    ]
+  }
+}
