@@ -6,3 +6,4 @@ outputs/
 *.log
 .tmp/
 external/AgentHazard/
+.pytest_tmp/

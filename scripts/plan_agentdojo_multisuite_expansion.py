@@ -144,15 +144,15 @@ def _run_command(suite: str, batch_name: str, tasks: list[str], dry_run: bool) -
     task_arg = ",".join(tasks)
     base_out = f"outputs/agentdojo_expansion/{batch_name}"
     command = [
-        r"F:\Anaconda_envs\envs\safetythermo\python.exe",
-        "scripts\\run_agentdojo_mini_batch.py",
+        sys.executable,
+        "scripts/run_agentdojo_mini_batch.py",
         "--suite", suite,
         "--limit", str(len(tasks)),
         "--tasks", task_arg,
-        "--trace-dir", f"{base_out}\\traces",
-        "--prefix-dir", f"{base_out}\\prefix",
-        "--merged-out", f"{base_out}\\merged\\{batch_name}_prefix_dataset.csv",
-        "--summary", f"{base_out}\\run_summary.json",
+        "--trace-dir", f"{base_out}/traces",
+        "--prefix-dir", f"{base_out}/prefix",
+        "--merged-out", f"{base_out}/merged/{batch_name}_prefix_dataset.csv",
+        "--summary", f"{base_out}/run_summary.json",
         "--provider", RUN_SETTINGS["provider"],
         "--model", RUN_SETTINGS["model"],
         "--max-steps", str(RUN_SETTINGS["max_steps"]),

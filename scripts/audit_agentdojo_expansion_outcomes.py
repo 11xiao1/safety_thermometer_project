@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import re
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -17,7 +18,7 @@ DEFAULT_CSV_OUT = "outputs/agentdojo_expansion_outcome_audit.csv"
 DEFAULT_COMMANDS_OUT = "outputs/agentdojo_expansion_recovery_commands.txt"
 DEFAULT_UTILITY_AUDIT_JSON_OUT = "outputs/agentdojo_expansion_utility_false_trace_quality_audit.json"
 DEFAULT_UTILITY_AUDIT_CSV_OUT = "outputs/agentdojo_expansion_utility_false_trace_quality_audit.csv"
-PYTHON_EXE = r"F:\Anaconda_envs\envs\safetythermo\python.exe"
+PYTHON_EXE = sys.executable
 RECOVERY_ROOT = "outputs/agentdojo_expansion_recovery"
 CSV_COLUMNS = [
     "batch",
@@ -247,7 +248,7 @@ def _build_recovery_command(suite: str, tasks: list[str], dry_run: bool, recover
     out_dir = f"{RECOVERY_ROOT}/{batch}"
     pieces = [
         PYTHON_EXE,
-        "scripts\\run_agentdojo_mini_batch.py",
+        "scripts/run_agentdojo_mini_batch.py",
         "--suite",
         suite,
         "--limit",
@@ -255,13 +256,13 @@ def _build_recovery_command(suite: str, tasks: list[str], dry_run: bool, recover
         "--tasks",
         ",".join(tasks),
         "--trace-dir",
-        f"{out_dir}\\traces",
+        f"{out_dir}/traces",
         "--prefix-dir",
-        f"{out_dir}\\prefix",
+        f"{out_dir}/prefix",
         "--merged-out",
-        f"{out_dir}\\merged\\{batch}_prefix_dataset.csv",
+        f"{out_dir}/merged/{batch}_prefix_dataset.csv",
         "--summary",
-        f"{out_dir}\\run_summary.json",
+        f"{out_dir}/run_summary.json",
         "--provider",
         "openai-compatible",
         "--model",

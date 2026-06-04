@@ -38,7 +38,8 @@ def _scan_text_files(root: Path) -> list[dict[str, Any]]:
         for path in scan_root.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
                 continue
-            if any(part in {".pytest_tmp", ".git", "__pycache__"} for part in path.parts):
+            relative_parts = path.relative_to(root).parts
+            if any(part in {".pytest_tmp", ".git", "__pycache__"} for part in relative_parts):
                 continue
             text = _read_text(path)
             for line_no, line in enumerate(text.splitlines(), start=1):

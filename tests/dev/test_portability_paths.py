@@ -22,7 +22,7 @@ def test_portability_report_flags_windows_absolute_paths(tmp_path):
     (tmp_path / "requirements.txt").write_text("pytest>=7\n", encoding="utf-8")
     script = tmp_path / "scripts/example.py"
     script.parent.mkdir(parents=True)
-    windows_path = '"E:' + '\\\\safety_thermometer_project\\\\outputs"'
+    windows_path = '"E:' + "/" + "safety_thermometer_project" + "/" + 'outputs"'
     script.write_text(f"DATA = {windows_path}\n", encoding="utf-8")
 
     report = build_portability_report(tmp_path)
