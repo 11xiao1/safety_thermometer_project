@@ -1,1 +1,0 @@
-{"test_split_used": false, "logistic": {"auroc": 0.9, "auprc": 1.0, "f1_at_50": 0.6}, "random_forest": {"auroc": 0.5, "auprc": 0.5, "f1_at_50": 0.5}, "hist_gradient_boosting": {"auroc": 0.4, "auprc": 0.4, "f1_at_50": 0.4}}

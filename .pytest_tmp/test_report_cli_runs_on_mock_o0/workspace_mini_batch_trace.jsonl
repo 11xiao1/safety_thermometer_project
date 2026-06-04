@@ -1,5 +1,0 @@
-{"hook_type": "pre_step", "proposed_tool": "search_calendar_events"}
-{"hook_type": "post_step", "proposed_tool": "search_calendar_events"}
-{"hook_type": "pre_step", "proposed_tool": "read_email"}
-{"hook_type": "post_step", "proposed_tool": "read_email"}
-{"hook_type": "final"}
