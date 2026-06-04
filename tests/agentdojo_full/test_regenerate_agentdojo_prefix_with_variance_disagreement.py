@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from scripts.regenerate_agentdojo_prefix_with_variance_disagreement import (
+from scripts.agentdojo_full.regenerate_agentdojo_prefix_with_variance_disagreement import (
     VARIANCE_COLUMNS,
     regenerate_agentdojo_prefix_with_variance_disagreement,
 )

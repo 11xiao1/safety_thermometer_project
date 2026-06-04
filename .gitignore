@@ -5,3 +5,4 @@ outputs/
 *.csv
 *.log
 .tmp/
+external/AgentHazard/

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from scripts.summarize_agentdojo_full_validation_ablation import (
+from scripts.agentdojo_full.summarize_agentdojo_full_validation_ablation import (
     SUMMARY_COLUMNS,
     summarize_agentdojo_full_validation_ablation,
 )

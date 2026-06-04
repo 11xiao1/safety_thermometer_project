@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 

@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from scripts.evaluate_agentdojo_utility_slices import evaluate_agentdojo_utility_slices
+from scripts.agentdojo_full.evaluate_agentdojo_utility_slices import evaluate_agentdojo_utility_slices
 
 
 def _write_inputs(root, setting):

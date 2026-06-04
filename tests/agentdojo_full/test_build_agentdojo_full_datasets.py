@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from scripts.build_agentdojo_full_datasets import (
+from scripts.agentdojo_full.build_agentdojo_full_datasets import (
     DISAGREEMENT_COLUMNS,
     build_agentdojo_full_datasets,
 )

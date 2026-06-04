@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from scripts.backfill_agentdojo_metadata import backfill_agentdojo_metadata
+from scripts.agentdojo_full.backfill_agentdojo_metadata import backfill_agentdojo_metadata
 
 
 def _write_json(path, payload):
