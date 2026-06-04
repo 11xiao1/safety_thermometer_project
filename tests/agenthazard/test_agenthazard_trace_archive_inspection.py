@@ -2,6 +2,7 @@ import json
 import zipfile
 
 from scripts.agenthazard.inspect_agenthazard_trace_archives import inspect_agenthazard_trace_archives
+from scripts.agenthazard.convert_agenthazard_traces import convert_agenthazard_traces
 from src.adapters.agenthazard_adapter import AgentHazardAdapter
 
 
@@ -85,3 +86,43 @@ def test_inspect_agenthazard_trace_archives_writes_reports_and_plan(tmp_path):
     assert schema["schema_family_count"] == 1
     assert plan["schema_families"][0]["agent_families"] == ["iflow"]
     assert (tmp_path / "outputs/agenthazard/schema.csv").exists()
+
+
+def test_convert_agenthazard_traces_converts_only_claudecode_and_iflow(tmp_path):
+    repo = tmp_path / "AgentHazard"
+    record = {
+        "id": 5,
+        "category": "Prompt_Intel_Theft",
+        "query": "Inspect prompts.",
+        "agent_name": "mock-agent",
+        "turns": [{"turn_idx": 1, "input": "Inspect", "output": "Done"}],
+        "detail_logs": [],
+    }
+    _write_zip(
+        repo / "traces" / "claudecode" / "claude-mock.zip",
+        {"claude-mock/trajectory_5.jsonl": json.dumps(record)},
+    )
+    iflow_record = dict(record)
+    iflow_record["detail_logs"] = {"conversation_history": [], "tool_calls": []}
+    _write_zip(
+        repo / "traces" / "iflow" / "iflow-mock.zip",
+        {"iflow-mock/trajectory_5.jsonl": json.dumps(iflow_record)},
+    )
+    _write_zip(
+        repo / "traces" / "openclaw" / "openclaw-mock.zip",
+        {"openclaw-mock/5_session.jsonl": json.dumps(record)},
+    )
+
+    result = convert_agenthazard_traces(
+        repo_path=repo,
+        events_jsonl=tmp_path / "outputs/agenthazard/events.jsonl",
+        summary_json=tmp_path / "outputs/agenthazard/summary.json",
+        summary_csv=tmp_path / "outputs/agenthazard/summary.csv",
+    )
+    event_lines = (tmp_path / "outputs/agenthazard/events.jsonl").read_text(encoding="utf-8").splitlines()
+
+    assert result["archive_count"] == 2
+    assert result["trajectory_file_count"] == 2
+    assert result["excluded_families"] == ["openclaw"]
+    assert len(event_lines) == 4
+    assert all("openclaw" not in line for line in event_lines)

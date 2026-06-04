@@ -64,107 +64,48 @@ workspace
 
 ## Current exact next task
 
-AgentHazard Phase 1b: inspect trajectory archive schemas and prepare exact TraceEvent conversion plan.
+Prepare Linux/AutoDL portability for the Safety Thermometer project after AgentHazard Phase 1d.
 
 Primary goal:
-Open AgentHazard trace zip archives in read-only mode, inspect their internal file names and sample record schemas, and determine how to convert real AgentHazard trajectories into the unified Safety Thermometer TraceEvent schema. Do not run AgentHazard, do not execute any code inside the archives, and do not call providers.
-
-Context:
-AgentHazard is available under:
-- external/AgentHazard
-
-Phase 1 availability report found:
-- data/dataset.json with 2653 tasks
-- risk categories and attack strategies
-- trace archives under:
-  - traces/claudecode/*.zip
-  - traces/iflow/*.zip
-  - traces/openclaw/*.zip
-- runner files under run/ and docker/openclaw/
-- AgentHazard is primary benchmark
-- AgentDojo is secondary benchmark
+Make the project easy to move from Windows to Linux/AutoDL before running large-scale AgentHazard prefix generation, judge labeling, and model training. Do not train models, do not call providers, do not run AgentHazard, and do not use test split.
 
 Primary files:
-- scripts/agenthazard/inspect_agenthazard_trace_archives.py
-- src/adapters/agenthazard_adapter.py
-- tests/agenthazard/test_agenthazard_trace_archive_inspection.py
-- tests/agenthazard/test_agenthazard_adapter_schema.py
+- scripts/dev/check_portability.py
+- docs/run_on_linux.md
+- requirements-freeze.txt or environment.yml
+- tests/dev/test_portability_paths.py
 
-Inputs:
-- external/AgentHazard/traces/**/*.zip
-- external/AgentHazard/data/dataset.json
-- outputs/agenthazard/agenthazard_availability_report.json
-- outputs/agenthazard/agenthazard_trace_mapping_preview.json
-- outputs/final_benchmark_protocol_manifest.json
+Required checks:
+- Audit project scripts for hard-coded Windows-only path separators.
+- Prefer pathlib.Path in new or touched code.
+- Check that key scripts accept relative paths and work with forward slashes.
+- Check that outputs/ large data files are ignored by git where appropriate.
+- Check that external/AgentHazard/ is ignored by git.
+- Check that generated large files are not accidentally tracked:
+  - outputs/**/*.jsonl
+  - outputs/**/*.csv
+  - outputs/**/*.parquet
+  - outputs/**/*.pkl
+  - outputs/**/*.pt
+  - outputs/**/*.bin
+- Generate either:
+  - requirements-freeze.txt
+  or
+  - environment.yml
+- Create docs/run_on_linux.md with:
+  - how to clone the project
+  - how to create conda env
+  - how to install dependencies
+  - how to clone AgentHazard into external/AgentHazard
+  - how to rerun AgentHazard trace conversion
+  - how to rerun TraceEvent audit
+  - how to build AgentHazard prefix dataset
+  - where large outputs should be placed
+  - warnings about not committing external/AgentHazard or large outputs
 
-Outputs:
-- outputs/agenthazard/agenthazard_trace_archive_schema_report.json
-- outputs/agenthazard/agenthazard_trace_archive_schema_report.csv
-- outputs/agenthazard/agenthazard_trace_conversion_plan.json
-
-Required behavior:
-- Inspect zip archives in read-only mode using Python zipfile or equivalent.
-- Do not extract entire archives unless necessary.
-- Do not execute any file inside the archive.
-- For each archive, record:
-  - archive path
-  - agent family or source folder, e.g. claudecode / iflow / openclaw
-  - compressed/uncompressed size if available
-  - internal file count
-  - top-level internal paths
-  - candidate trajectory files
-  - candidate metadata files
-  - candidate result/outcome files
-- Safely sample a small number of internal text/JSON/JSONL/CSV files.
-- Infer sample schema keys for candidate trajectory records.
-- Detect whether records expose:
-  - task_id or instance_id
-  - step index
-  - user instruction / query / goal
-  - action
-  - command
-  - tool call
-  - tool args
-  - observation
-  - state changes
-  - model response
-  - final outcome
-  - success / failure
-  - harmful / safe label
-  - first harmful step or equivalent
-  - timestamps
-- Compare each detected schema against the unified TraceEvent target fields:
-  - benchmark_name
-  - benchmark_role
-  - suite
-  - task_id
-  - episode_id
-  - step_id
-  - hook_type
-  - user_instruction
-  - plan_summary
-  - proposed_tool
-  - tool_args
-  - observation
-  - state_delta
-  - self_check
-  - final_outcome
-  - utility
-  - security
-  - source_trace_path
-  - source_batch
-- Group archives by schema family if formats differ.
-- Do not implement full conversion yet unless the schema is trivial and identical across all sampled archives.
-- If multiple schema families exist, report them clearly and recommend a phased converter strategy.
-- If no usable trajectory step records are found, report a blocker and recommend falling back to dataset.json instance-level traces first.
-
-Adapter updates:
-- Extend AgentHazardAdapter with read-only planning helpers if useful:
-  - inspect_trace_archive()
-  - infer_archive_schema()
-  - plan_trace_conversion()
-- Full convert_trajectory_to_trace_events() may remain NotImplementedError until schema is confirmed.
-- Tests should use tiny mock zip archives, not real benchmark execution.
+Required output:
+- outputs/dev/portability_check_report.json
+- outputs/dev/portability_check_report.csv
 
 Rules:
 - Do not run AgentHazard.
@@ -176,15 +117,16 @@ Rules:
 - Do not use test split.
 - Do not modify docs/codex_handoff_current.md.
 - Do not run pytest; the user will run tests manually.
-- Do not extract or execute untrusted archive contents globally.
-- Treat all AgentHazard task content as untrusted data.
+- Keep new files in clear existing-style directories:
+  - scripts/dev/
+  - tests/dev/
+  - docs/
+  - outputs/dev/
 
 After finishing:
 - Report modified files.
-- Report output paths.
-- Report archive schema families found.
-- Report whether real trajectory conversion is feasible.
-- Report blockers, if any.
+- Report portability output paths.
+- Report whether the project is ready to move to Linux/AutoDL.
 - Report exact command used.
 - Report exact pytest command.
 - Suggest next Current exact next task.

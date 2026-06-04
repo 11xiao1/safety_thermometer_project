@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import zipfile
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +61,11 @@ TRACE_EVENT_TARGET_FIELDS = [
     "source_trace_path",
     "source_batch",
 ]
+
+SUPPORTED_TRAJECTORY_FAMILIES = {"claudecode", "iflow"}
+AGENTHAZARD_STEP_SCALE = 10_000
+AGENTHAZARD_PRE_TOOL_OFFSET = -1_000
+AGENTHAZARD_POST_TOOL_OFFSET = 1_000
 
 FIELD_SYNONYMS = {
     "task_id": {"id", "task_id", "instance_id", "original_id", "case_id", "sample_id"},
@@ -253,8 +259,107 @@ class AgentHazardAdapter:
             )
         ]
 
-    def convert_trajectory_to_trace_events(self, trajectory: Any) -> list[TraceEvent]:
-        raise NotImplementedError("Exact AgentHazard trajectory archive schema is not yet known.")
+    def convert_trajectory_to_trace_events(
+        self,
+        trajectory: Any,
+        source_trace_path: str | None = None,
+        source_batch: str | None = None,
+        agent_family: str | None = None,
+    ) -> list[TraceEvent]:
+        if not isinstance(trajectory, dict):
+            raise NotImplementedError("AgentHazard trajectory conversion expects one JSON object record.")
+        if agent_family is not None and agent_family not in SUPPORTED_TRAJECTORY_FAMILIES:
+            raise NotImplementedError(f"AgentHazard family is not enabled for main conversion: {agent_family}")
+
+        task_id = trajectory.get("id") or trajectory.get("instance_id") or trajectory.get("original_id")
+        instruction = trajectory.get("query") or trajectory.get("goal") or trajectory.get("objective") or trajectory.get("instruction")
+        category = trajectory.get("category") or trajectory.get("risk_category")
+        if task_id is None or not instruction:
+            raise NotImplementedError("AgentHazard trajectory needs task_id/id and query/instruction fields.")
+
+        inferred_family = agent_family or self._family_from_source_batch(source_batch) or "unknown"
+        if inferred_family not in SUPPORTED_TRAJECTORY_FAMILIES:
+            raise NotImplementedError(f"AgentHazard family is not enabled for main conversion: {inferred_family}")
+
+        episode_id = self._trajectory_episode_id(trajectory, inferred_family, source_batch)
+        base_notes = {
+            "benchmark_name": "agenthazard",
+            "benchmark_role": "primary",
+            "agent_family": inferred_family,
+            "agent_name": trajectory.get("agent_name"),
+            "task_id": task_id,
+            "risk_category": category,
+            "attack_strategy": trajectory.get("jailbreak_method") or trajectory.get("attack_strategy"),
+            "original_id": trajectory.get("original_id"),
+            "sandbox_id": trajectory.get("sandbox_id"),
+            "source": trajectory.get("source"),
+            "source_trace_path": source_trace_path,
+            "source_batch": source_batch,
+            "utility": None,
+            "security": None,
+        }
+
+        events: list[TraceEvent] = []
+        events.extend(self._turn_events(trajectory, episode_id, str(instruction), base_notes))
+        events.extend(self._tool_events(trajectory, episode_id, str(instruction), base_notes))
+        final_step = max((event.step_id for event in events), default=0) + AGENTHAZARD_STEP_SCALE
+        final_notes = dict(base_notes)
+        final_notes["event_kind"] = "trajectory_final"
+        final_notes["total_turns"] = trajectory.get("total_turns")
+        events.append(
+            TraceEvent(
+                episode_id=episode_id,
+                step_id=final_step,
+                hook_type="final",
+                user_instruction=str(instruction),
+                observation=self._stringify_observation(
+                    {
+                        "total_turns": trajectory.get("total_turns"),
+                        "turn_count": len(trajectory.get("turns") or []),
+                        "tool_event_count": len(events) - len(trajectory.get("turns") or []),
+                    }
+                ),
+                notes=json.dumps(final_notes, ensure_ascii=False, sort_keys=True),
+            )
+        )
+        return sorted(events, key=lambda event: (event.step_id, {"pre_step": 0, "checkpoint": 1, "post_step": 2, "final": 3}.get(event.hook_type, 9)))
+
+    def convert_supported_trace_archive(
+        self,
+        archive_path: str | Path,
+        max_trajectories: int | None = None,
+    ) -> list[TraceEvent]:
+        path = Path(archive_path)
+        if not path.is_absolute() and not path.exists():
+            path = self.repo_path / path
+        family = self._agent_family_for_archive(path)
+        if family not in SUPPORTED_TRAJECTORY_FAMILIES:
+            raise NotImplementedError(f"AgentHazard family is not enabled for main conversion: {family}")
+
+        events: list[TraceEvent] = []
+        with zipfile.ZipFile(path, "r") as archive:
+            names = [
+                name
+                for name in archive.namelist()
+                if not self._is_ignorable_internal_path(name)
+                and Path(name).name.startswith("trajectory_")
+                and Path(name).suffix.lower() == ".jsonl"
+            ]
+            for name in sorted(names)[:max_trajectories]:
+                text = archive.read(name).decode("utf-8", errors="replace")
+                for line in text.splitlines():
+                    if not line.strip():
+                        continue
+                    record = json.loads(line)
+                    events.extend(
+                        self.convert_trajectory_to_trace_events(
+                            record,
+                            source_trace_path=name,
+                            source_batch=_rel(path, self.repo_path) if self.repo_path in path.parents else str(path),
+                            agent_family=family,
+                        )
+                    )
+        return events
 
     def inspect_trace_archive(
         self,
@@ -436,6 +541,176 @@ class AgentHazardAdapter:
         if len(relative.parts) >= 2 and relative.parts[0].lower() == "traces":
             return relative.parts[1].lower()
         return relative.parts[0].lower() if relative.parts else "unknown"
+
+    def _family_from_source_batch(self, source_batch: str | None) -> str | None:
+        if not source_batch:
+            return None
+        parts = Path(source_batch.replace("\\", "/")).parts
+        lowered = [part.lower() for part in parts]
+        for family in SUPPORTED_TRAJECTORY_FAMILIES:
+            if family in lowered:
+                return family
+        return None
+
+    def _trajectory_episode_id(self, trajectory: dict[str, Any], family: str, source_batch: str | None) -> str:
+        category = trajectory.get("category") or trajectory.get("risk_category") or "unknown"
+        task_id = trajectory.get("id") or trajectory.get("instance_id") or trajectory.get("original_id")
+        source_archive = Path((source_batch or family).replace("\\", "/")).stem
+        return f"agenthazard:{family}:{source_archive}:{category}:{task_id}"
+
+    def _turn_events(
+        self,
+        trajectory: dict[str, Any],
+        episode_id: str,
+        instruction: str,
+        base_notes: dict[str, Any],
+    ) -> list[TraceEvent]:
+        events: list[TraceEvent] = []
+        turns = trajectory.get("turns") or []
+        if not isinstance(turns, list):
+            return events
+        for index, turn in enumerate(turns, start=1):
+            if not isinstance(turn, dict):
+                continue
+            turn_idx = self._coerce_step_id(turn.get("turn_idx") or turn.get("step_id") or turn.get("step"), index)
+            step_id = turn_idx * AGENTHAZARD_STEP_SCALE
+            notes = dict(base_notes)
+            notes.update(
+                {
+                    "event_kind": "agent_turn",
+                    "turn_idx": turn.get("turn_idx"),
+                    "start_time": turn.get("start_time"),
+                    "end_time": turn.get("end_time"),
+                }
+            )
+            events.append(
+                TraceEvent(
+                    episode_id=episode_id,
+                    step_id=step_id,
+                    hook_type="checkpoint",
+                    user_instruction=instruction,
+                    plan_summary=self._stringify_optional(turn.get("input")),
+                    observation=self._stringify_optional(turn.get("output")),
+                    notes=json.dumps(notes, ensure_ascii=False, sort_keys=True),
+                )
+            )
+        return events
+
+    def _tool_events(
+        self,
+        trajectory: dict[str, Any],
+        episode_id: str,
+        instruction: str,
+        base_notes: dict[str, Any],
+    ) -> list[TraceEvent]:
+        detail_logs = trajectory.get("detail_logs")
+        if isinstance(detail_logs, list):
+            return self._claudecode_tool_events(detail_logs, episode_id, instruction, base_notes)
+        if isinstance(detail_logs, dict):
+            return self._iflow_tool_events(detail_logs, episode_id, instruction, base_notes)
+        return []
+
+    def _claudecode_tool_events(
+        self,
+        detail_logs: list[Any],
+        episode_id: str,
+        instruction: str,
+        base_notes: dict[str, Any],
+    ) -> list[TraceEvent]:
+        events: list[TraceEvent] = []
+        per_step_hook_counts: Counter[tuple[int, str]] = Counter()
+        for index, log in enumerate(detail_logs, start=1):
+            if not isinstance(log, dict):
+                continue
+            log_type = str(log.get("type") or "")
+            if log_type not in {"pre_tool", "post_tool"}:
+                continue
+            base_step = self._step_id_from_sequence(log.get("sequence"), index)
+            per_step_hook_counts[(base_step, log_type)] += 1
+            offset = AGENTHAZARD_PRE_TOOL_OFFSET if log_type == "pre_tool" else AGENTHAZARD_POST_TOOL_OFFSET
+            step_id = base_step * AGENTHAZARD_STEP_SCALE + offset + per_step_hook_counts[(base_step, log_type)]
+            notes = dict(base_notes)
+            notes.update(
+                {
+                    "event_kind": log_type,
+                    "tool_use_id": log.get("tool_use_id"),
+                    "session_id": log.get("session_id"),
+                    "cwd": log.get("cwd"),
+                    "permission_mode": log.get("permission_mode"),
+                    "timestamp": log.get("timestamp"),
+                }
+            )
+            events.append(
+                TraceEvent(
+                    episode_id=episode_id,
+                    step_id=step_id,
+                    hook_type="pre_step" if log_type == "pre_tool" else "post_step",
+                    user_instruction=instruction,
+                    proposed_tool=self._stringify_optional(log.get("tool_name")),
+                    tool_args=log.get("tool_input") if isinstance(log.get("tool_input"), dict) else {},
+                    observation=self._stringify_observation(log.get("tool_response")) if log_type == "post_tool" else None,
+                    notes=json.dumps(notes, ensure_ascii=False, sort_keys=True),
+                )
+            )
+        return events
+
+    def _iflow_tool_events(
+        self,
+        detail_logs: dict[str, Any],
+        episode_id: str,
+        instruction: str,
+        base_notes: dict[str, Any],
+    ) -> list[TraceEvent]:
+        events: list[TraceEvent] = []
+        tool_calls = detail_logs.get("tool_calls") or []
+        if not isinstance(tool_calls, list):
+            return events
+        per_step_counts: Counter[int] = Counter()
+        for index, call in enumerate(tool_calls, start=1):
+            if not isinstance(call, dict):
+                continue
+            base_step = self._coerce_step_id(call.get("turn_idx") or call.get("step") or call.get("step_id"), index)
+            per_step_counts[base_step] += 1
+            step_id = base_step * AGENTHAZARD_STEP_SCALE + AGENTHAZARD_PRE_TOOL_OFFSET + per_step_counts[base_step]
+            tool_name = call.get("tool_name") or call.get("name") or call.get("tool")
+            tool_args = call.get("tool_input") or call.get("arguments") or call.get("args") or call.get("input")
+            observation = call.get("tool_response") or call.get("response") or call.get("result") or call.get("output")
+            notes = dict(base_notes)
+            notes.update({"event_kind": "iflow_tool_call", "timestamp": call.get("timestamp")})
+            events.append(
+                TraceEvent(
+                    episode_id=episode_id,
+                    step_id=step_id,
+                    hook_type="pre_step",
+                    user_instruction=instruction,
+                    proposed_tool=self._stringify_optional(tool_name),
+                    tool_args=tool_args if isinstance(tool_args, dict) else {},
+                    observation=self._stringify_observation(observation),
+                    notes=json.dumps(notes, ensure_ascii=False, sort_keys=True),
+                )
+            )
+        return events
+
+    def _coerce_step_id(self, value: Any, fallback: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return fallback
+
+    def _step_id_from_sequence(self, value: Any, fallback: int) -> int:
+        text = str(value or "")
+        digits = "".join(character for character in text if character.isdigit())
+        return self._coerce_step_id(digits, fallback)
+
+    def _stringify_optional(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+    def _stringify_observation(self, value: Any) -> str | None:
+        return self._stringify_optional(value)
 
     def _top_level_internal_paths(self, names: list[str]) -> list[str]:
         top_level = []
